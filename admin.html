@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>案件入力</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --line: #2a2e38;
+      --text: #e8eaed;
+      --muted: #9aa0aa;
+      --accent: #5dcaa5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    }
+
+    .wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 14px 0 4px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: #11141a;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .row>div {
+      flex: 1;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #06281f;
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .msg {
+      margin-top: 14px;
+      padding: 10px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .ok {
+      background: #11352b;
+      color: var(--accent);
+    }
+
+    .ng {
+      background: #3a1a1a;
+      color: #ff9b9b;
+    }
+
+    .gate {
+      max-width: 360px;
+      margin: 80px auto;
+    }
+
+    .gate h1 {
+      text-align: center;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 6px;
+      text-align: center;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logout {
+      background: #333;
+      color: #ccc;
+      margin: 0;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ログイン画面 -->
+  <div class="gate" id="gate">
+    <h1>案件入力 ログイン</h1>
+    <label>メールアドレス</label>
+    <input id="email" type="email" placeholder="ID（メールアドレス）" />
+    <label>パスワード</label>
+    <input id="password" type="password" placeholder="パスワード" />
+    <button onclick="login()" style="width:100%">ログイン</button>
+    <div class="msg ng" id="loginNg"></div>
+    <div class="hint">社内担当者向けの入力画面です。</div>
+  </div>
+
+  <!-- 入力フォーム -->
+  <div class="wrap" id="form" style="display:none">
+    <div class="topbar">
+      <h1>案件を登録</h1>
+      <button class="logout" onclick="logout()">ログアウト</button>
+    </div>
+
+    <label>案件名 <span style="color:#ff9b9b">*必須</span></label>
+    <input id="title" placeholder="例：AWS環境の不具合調査・改修" />
+
+    <label>概要</label>
+    <textarea id="summary" placeholder="案件の概要を入力"></textarea>
+
+    <div class="row">
+      <div><label>単価</label><input id="rate" placeholder="例：～75万円" /></div>
+      <div><label>精算</label><input id="settlement" placeholder="例：140-180h" /></div>
+    </div>
+    <div class="row">
+      <div><label>募集人数</label><input id="headcount" type="number" placeholder="例：1" /></div>
+      <div><label>期間・時期</label><input id="period" placeholder="例：7月～" /></div>
+    </div>
+    <div class="row">
+      <div><label>勤務地</label><input id="location" placeholder="例：汐留 / リモート" /></div>
+      <div><label>リモート可否・頻度</label><input id="remote" placeholder="例：基本リモート" /></div>
+    </div>
+
+    <label>外国籍</label>
+    <select id="foreign_ok">
+      <option value="">指定なし</option>
+      <option value="true">可</option>
+      <option value="false">不可</option>
+    </select>
+
+    <label>必須スキル（1行に1つ）</label>
+    <textarea id="skills_required" placeholder="AWS&#10;Python&#10;SQL"></textarea>
+
+    <label>尚可スキル（1行に1つ）</label>
+    <textarea id="skills_preferred" placeholder="HULFT&#10;Teradata"></textarea>
+
+    <button onclick="submitCase()">この内容で登録する</button>
+    <div class="msg ok" id="ok"></div>
+    <div class="msg ng" id="ng"></div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // ▼▼▼ 2か所だけ自分の値に変更 ▼▼▼
+    const SUPABASE_URL = "https://yklwkovbphqmiucnmcmu.supabase.co"; // そのままでOK（あなたのプロジェクト）
+    const SUPABASE_ANON = "sb_publishable_V34btW_6HTEdovDYrtiDUw_FDDb93KW";                        // Supabaseのanon(公開)キー
+    // ▲▲▲ ここまで ▲▲▲
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    // 起動時：既にログイン済みならフォームを表示
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) showForm();
+
+    window.login = async () => {
+      const ng = document.getElementById("loginNg");
+      ng.style.display = "none";
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) {
+        ng.textContent = "ログインに失敗しました：" + error.message;
+        ng.style.display = "block";
+        return;
+      }
+      showForm();
+    };
+
+    window.logout = async () => {
+      await sb.auth.signOut();
+      document.getElementById("form").style.display = "none";
+      document.getElementById("gate").style.display = "block";
+    };
+
+    function showForm() {
+      document.getElementById("gate").style.display = "none";
+      document.getElementById("form").style.display = "block";
+    }
+
+    function lines(id) {
+      const v = document.getElementById(id).value.trim();
+      if (!v) return null;
+      return v.split("\n").map(s => s.trim()).filter(Boolean);
+    }
+    function val(id) {
+      const v = document.getElementById(id).value.trim();
+      return v === "" ? null : v;
+    }
+
+    window.submitCase = async () => {
+      const ok = document.getElementById("ok");
+      const ng = document.getElementById("ng");
+      ok.style.display = "none"; ng.style.display = "none";
+
+      const title = val("title");
+      if (!title) { ng.textContent = "案件名は必須です"; ng.style.display = "block"; return; }
+
+      const fo = document.getElementById("foreign_ok").value;
+      const hc = val("headcount");
+
+      const row = {
+        title,
+        summary: val("summary"),
+        rate: val("rate"),
+        settlement: val("settlement"),
+        headcount: hc === null ? null : Number(hc),
+        period: val("period"),
+        location: val("location"),
+        remote: val("remote"),
+        foreign_ok: fo === "" ? null : (fo === "true"),
+        skills_required: lines("skills_required"),
+        skills_preferred: lines("skills_preferred"),
+        raw_text: "(手動入力)",
+        is_open: true,
+        needs_review: false,
+      };
+
+      const { error } = await sb.from("cases").insert(row);
+      if (error) {
+        ng.textContent = "登録に失敗しました：" + error.message;
+        ng.style.display = "block";
+        return;
+      }
+      ok.textContent = "登録しました：" + title;
+      ok.style.display = "block";
+      for (const id of ["title", "summary", "rate", "settlement", "headcount", "period", "location", "remote", "skills_required", "skills_preferred"]) {
+        document.getElementById(id).value = "";
+      }
+      document.getElementById("foreign_ok").value = "";
+    };
+  </script>
+</body>
+
+</html>

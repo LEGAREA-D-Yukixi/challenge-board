@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>案件ボード</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --line: #2a2e38;
+      --text: #e8eaed;
+      --muted: #9aa0aa;
+      --accent: #5dcaa5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      overflow: hidden;
+    }
+
+    header {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--line);
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header .count {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .belt-wrap {
+      overflow: hidden;
+      padding: 24px 0;
+    }
+
+    .belt {
+      display: flex;
+      gap: 20px;
+      padding: 0 24px;
+      width: max-content;
+      animation: scroll 80s linear infinite;
+    }
+
+    .belt:hover {
+      animation-play-state: paused;
+    }
+
+    @keyframes scroll {
+      from {
+        transform: translateX(0)
+      }
+
+      to {
+        transform: translateX(-50%)
+      }
+    }
+
+    .card {
+      width: 340px;
+      flex: 0 0 auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 20px;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+    }
+
+    .card h2 {
+      font-size: 18px;
+      margin: 0 0 12px;
+      line-height: 1.4;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.95;
+    }
+
+    .tag {
+      display: inline-block;
+      background: #11352b;
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 3px 11px;
+      font-size: 12px;
+      margin: 3px 5px 3px 0;
+    }
+
+    .empty {
+      padding: 60px 24px;
+      color: var(--muted);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 28px;
+      width: min(520px, 92vw);
+      max-height: 88vh;
+      overflow-y: auto;
+    }
+
+    .modal h2 {
+      margin: 0 0 8px;
+    }
+
+    .modal .sub {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.9;
+      margin-bottom: 16px;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .modal button {
+      padding: 12px 20px;
+      border-radius: 8px;
+      border: 0;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .apply-btn {
+      background: var(--accent);
+      color: #06281f;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: #333;
+      color: #ccc;
+      margin-left: 8px;
+    }
+
+    .applicants {
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .applicants b {
+      color: var(--text);
+    }
+
+    .msg {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 8px;
+      display: none;
+      font-size: 14px;
+    }
+
+    .ok {
+      background: #11352b;
+      color: var(--accent);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <span>現在募集中の案件</span>
+    <span class="count" id="count"></span>
+  </header>
+  <div class="belt-wrap">
+    <div class="belt" id="belt"></div>
+  </div>
+  <div class="empty" id="empty" style="display:none">現在、募集中の案件はありません。</div>
+
+  <div class="overlay" id="overlay">
+    <div class="modal">
+      <h2 id="m-title"></h2>
+      <div class="sub" id="m-body"></div>
+      <input id="m-name" placeholder="応募者氏名を入力してください" />
+      <div>
+        <button class="apply-btn" onclick="submitApply()">この案件に応募する</button>
+        <button class="close-btn" onclick="closeModal()">閉じる</button>
+      </div>
+      <div class="msg ok" id="m-msg"></div>
+      <div class="applicants" id="m-applicants"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+    // ▼▼▼ 2か所だけ自分の値に変更 ▼▼▼
+    const SUPABASE_URL = "https://yklwkovbphqmiucnmcmu.supabase.co"; // そのままでOK
+    const SUPABASE_ANON = "sb_publishable_V34btW_6HTEdovDYrtiDUw_FDDb93KW";                        // Supabaseのanon(公開)キー
+    // ▲▲▲ ここまで ▲▲▲
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+    let current = null, casesById = {}, applicants = {};
+
+    async function load() {
+      const { data: cases } = await sb.from("cases")
+        .select("*").eq("is_open", true).order("created_at", { ascending: false });
+      const { data: apps } = await sb.from("applications").select("*");
+      applicants = {};
+      for (const a of apps || []) (applicants[a.case_id] ??= []).push(a.applicant_name);
+
+      const list = cases || [];
+      document.getElementById("count").textContent = list.length + " 件";
+      const belt = document.getElementById("belt");
+      const empty = document.getElementById("empty");
+      casesById = {};
+
+      if (list.length === 0) {
+        belt.innerHTML = ""; empty.style.display = "block"; return;
+      }
+      empty.style.display = "none";
+
+      // 回転寿司：同じ並びを2セット並べてループ。件数が少ない時は数を増やして隙間を埋める
+      const repeat = Math.max(2, Math.ceil(8 / list.length));
+      const display = [];
+      for (let i = 0; i < repeat; i++) display.push(...list);
+
+      belt.innerHTML = "";
+      for (const c of display) {
+        casesById[c.id] = c;
+        const skills = (c.skills_required || []).slice(0, 4)
+          .map(s => `<span class="tag">${esc(s)}</span>`).join("");
+        const el = document.createElement("div");
+        el.className = "card";
+        el.onclick = () => openModal(c.id);
+        el.innerHTML = `<h2>${esc(c.title || "（無題）")}</h2>
+      <div class="meta">単価：${esc(c.rate || "-")}<br>期間：${esc(c.period || "-")}<br>
+      勤務地：${esc(c.location || "-")}（${esc(c.remote || "-")}）<br>募集：${c.headcount ?? "-"}名</div>
+      <div style="margin-top:10px">${skills}</div>
+      <div class="meta" style="margin-top:10px">応募 ${(applicants[c.id] || []).length} 名</div>`;
+        belt.appendChild(el);
+      }
+    }
+
+    window.openModal = (id) => {
+      current = casesById[id];
+      document.getElementById("m-title").textContent = current.title || "（無題）";
+      const req = (current.skills_required || []).join("、") || "-";
+      const pref = (current.skills_preferred || []).join("、");
+      document.getElementById("m-body").innerHTML =
+        `${esc(current.summary || "")}<br><br>
+     単価：${esc(current.rate || "-")}／精算：${esc(current.settlement || "-")}<br>
+     期間：${esc(current.period || "-")}／勤務地：${esc(current.location || "-")}（${esc(current.remote || "-")}）<br>
+     募集：${current.headcount ?? "-"}名／外国籍：${current.foreign_ok === null || current.foreign_ok === undefined ? "指定なし" : (current.foreign_ok ? "可" : "不可")}<br><br>
+     必須スキル：${esc(req)}${pref ? `<br>尚可スキル：${esc(pref)}` : ""}`;
+      document.getElementById("m-name").value = "";
+      document.getElementById("m-msg").style.display = "none";
+      renderApplicants();
+      document.getElementById("overlay").style.display = "flex";
+    };
+    window.closeModal = () => { document.getElementById("overlay").style.display = "none"; };
+
+    function renderApplicants() {
+      const names = applicants[current.id] || [];
+      document.getElementById("m-applicants").innerHTML =
+        names.length ? `<b>応募者（${names.length}名）：</b>` + names.map(esc).join("、")
+          : "まだ応募はありません";
+    }
+
+    window.submitApply = async () => {
+      const name = document.getElementById("m-name").value.trim();
+      if (!name) return;
+      const { error } = await sb.from("applications").insert({ case_id: current.id, applicant_name: name });
+      if (error) { alert("応募に失敗しました：" + error.message); return; }
+      document.getElementById("m-name").value = "";
+      const msg = document.getElementById("m-msg");
+      msg.textContent = "応募しました。ありがとうございます。";
+      msg.style.display = "block";
+    };
+
+    // 応募が入ったら全画面で即時更新（リアルタイム）
+    sb.channel("apps")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "applications" },
+        (payload) => {
+          const a = payload.new;
+          (applicants[a.case_id] ??= []).push(a.applicant_name);
+          if (current && current.id === a.case_id) renderApplicants();
+          load();
+        })
+      .subscribe();
+
+    function esc(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+
+    load();
+    setInterval(load, 60000); // 1分ごとに新着案件を反映
+  </script>
+</body>
+
+</html>
