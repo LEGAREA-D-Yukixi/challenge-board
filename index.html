@@ -104,12 +104,12 @@
       top: 0;
       left: 0;
       right: 0;
-      height: 96px;
+      height: 64px;
       z-index: 5;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 38px 0;
+      padding: 0 38px;
     }
 
     .brand b {
@@ -145,7 +145,7 @@
     /* ===== 横コンベア ===== */
     .stage {
       position: fixed;
-      inset: 96px 0 0 0;
+      inset: 64px 0 0 0;
       overflow: hidden;
       cursor: grab;
       user-select: none;
@@ -167,7 +167,7 @@
       display: flex;
       align-items: stretch;
       gap: 24px;
-      padding: 14px 28px;
+      padding: 8px 28px;
       will-change: transform;
     }
 
@@ -176,7 +176,7 @@
       width: clamp(460px, 40vw, 800px);
       display: flex;
       flex-direction: column;
-      padding: 24px 30px 18px;
+      padding: 16px 30px 18px;
       border-radius: var(--radius);
       position: relative;
       transition: transform .18s ease, box-shadow .18s ease;
@@ -211,7 +211,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       flex: 0 0 auto;
     }
 
@@ -320,7 +320,7 @@
 
     .empty {
       position: fixed;
-      inset: 96px 0 0 0;
+      inset: 64px 0 0 0;
       display: grid;
       place-items: center;
       font-size: 24px;
