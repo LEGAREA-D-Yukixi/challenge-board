@@ -305,6 +305,16 @@
       color: #9fb2da;
     }
 
+    .assignee {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    body[data-theme="deep"] .assignee {
+      color: #cbd8f2;
+    }
+
     .tap {
       flex: 0 0 auto;
       margin-top: 6px;
@@ -379,6 +389,12 @@
     }
 
     .m-period {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .m-assignee {
       font-size: 14px;
       font-weight: 800;
       color: var(--muted);
@@ -564,7 +580,8 @@
 
   <div class="ov" id="ov">
     <div class="modal">
-      <div class="m-head"><span class="pill">案件詳細</span><span class="m-period" id="mPeriod"></span></div>
+      <div class="m-head"><span class="pill">案件詳細</span><span class="m-assignee" id="mAssignee"></span><span
+          class="m-period" id="mPeriod"></span></div>
       <div class="m-overview" id="mOv"></div>
       <div class="m-apps" id="mApps"></div>
       <label for="nm">応募者氏名</label>
@@ -628,7 +645,7 @@
     async function load() {
       const guard = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data: cs } = await sb.from("cases")
-        .select("id, overview, title, created_at, period_days")
+        .select("id, overview, title, created_at, period_days, registrant")
         .gt("created_at", guard)
         .order("created_at", { ascending: false });
       const now = Date.now();
@@ -653,7 +670,7 @@
     function cardHTML(c) {
       const text = c.overview || c.title || "(内容なし)";
       return `<div class="card" data-id="${c.id}">
-    <div class="meta"><span class="pill">案件</span></div>
+    <div class="meta"><span class="pill">案件</span>${c.registrant ? `<span class="assignee">担当者：${esc(c.registrant)}</span>` : ""}</div>
     <div class="overview">${esc(text)}</div>
     <div class="applicants"><span class="lbl">応募者</span>${chipsHTML(applicants[c.id] || [])}</div>
     <div class="period">掲載期間：${fmtPeriod(c.created_at, c.period_days)}</div>
@@ -722,6 +739,7 @@
     // ---- 案件詳細＋応募 ----
     const ov = document.getElementById("ov"), mOv = document.getElementById("mOv"),
       mPeriod = document.getElementById("mPeriod"), mApps = document.getElementById("mApps"),
+      mAssignee = document.getElementById("mAssignee"),
       nm = document.getElementById("nm"), applyBtn = document.getElementById("apply");
 
     function renderModalApps() {
@@ -733,6 +751,7 @@
       current = c;
       mOv.textContent = c.overview || c.title || "";
       mPeriod.textContent = "掲載期間：" + fmtPeriod(c.created_at, c.period_days);
+      mAssignee.textContent = c.registrant ? "担当者：" + c.registrant : "";
       renderModalApps();
       nm.value = ""; ov.classList.add("show"); setTimeout(() => nm.focus(), 60);
     }

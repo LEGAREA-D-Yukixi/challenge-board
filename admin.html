@@ -569,9 +569,9 @@
     <textarea id="ov" placeholder="単価情報は削除してください。"></textarea>
     <div class="count"><span id="cnt">0</span> 文字</div>
 
-    <label for="reg" style="margin-top:24px">登録者</label>
+    <label for="reg" style="margin-top:24px">担当者</label>
     <input id="reg" type="text" placeholder="例）山田 太郎" autocomplete="off" />
-    <p class="hint">通知メッセージに表示されます。ChallengeBoard 画面には表示されません。</p>
+    <p class="hint">通知メッセージと ChallengeBoard 画面に表示されます。</p>
 
     <label for="days" style="margin-top:24px">掲載期間（日数）</label>
     <input id="days" type="number" min="1" step="1" value="7" />
@@ -609,7 +609,7 @@
       <p>内容を修正して更新できます。単価情報が残っていないかご確認ください。</p>
       <label for="eOv" style="margin-top:16px">案件概要</label>
       <textarea id="eOv"></textarea>
-      <label for="eReg" style="margin-top:16px">登録者</label>
+      <label for="eReg" style="margin-top:16px">担当者</label>
       <input id="eReg" type="text" placeholder="例）山田 太郎" autocomplete="off" />
       <label for="eDays" style="margin-top:16px">掲載期間（日数）</label>
       <input id="eDays" type="number" min="1" step="1" value="7" />
@@ -734,7 +734,7 @@
         return `<div class="item">
       <div class="item-main">
         <div class="item-ov">${esc(text)}</div>
-        <div class="item-meta">掲載期間：${fmtPeriod(c.created_at, c.period_days)}${c.registrant ? " ・ 登録者：" + esc(c.registrant) : ""} ・ 応募 ${n}件</div>
+        <div class="item-meta">掲載期間：${fmtPeriod(c.created_at, c.period_days)}${c.registrant ? " ・ 担当者：" + esc(c.registrant) : ""} ・ 応募 ${n}件</div>
       </div>
       <div class="item-actions">
         <button class="mini edit" data-id="${c.id}">編集</button>
