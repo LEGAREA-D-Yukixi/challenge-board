@@ -1,141 +1,553 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ChallengeBoard</title>
-<link rel="icon" type="image/png" href="favicon.png?v=2" />
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  :root{
-    --blue-900:#13357e; --blue-700:#1e40af; --blue-500:#2563eb; --blue-300:#7aa2f0;
-    --orange:#f59e0b; --gold:#e6b53c; --ink:#1f2733; --muted:#5b6675;
-    --radius:22px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{height:100%;overflow:hidden;}
-  body{
-    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",-apple-system,"Segoe UI",sans-serif;
-    color:var(--ink); position:relative;
-  }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChallengeBoard</title>
+  <link rel="icon" type="image/png" href="favicon.png?v=2" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --blue-900: #13357e;
+      --blue-700: #1e40af;
+      --blue-500: #2563eb;
+      --blue-300: #7aa2f0;
+      --orange: #f59e0b;
+      --gold: #e6b53c;
+      --ink: #1f2733;
+      --muted: #5b6675;
+      --radius: 22px;
+    }
 
-  /* ===== 背景レイヤー（テーマで切替） ===== */
-  .bg{position:fixed;inset:0;z-index:-1;overflow:hidden;}
-  .bg>div{position:absolute;inset:0;opacity:0;transition:opacity .5s;}
-  body[data-theme="soft"] .bg-soft{opacity:1;}
-  body[data-theme="geo"]  .bg-geo {opacity:1;}
-  body[data-theme="deep"] .bg-deep{opacity:1;}
-  .bg-soft{background:
-    radial-gradient(60% 60% at 12% 18%, #ffe6c2 0%, rgba(255,230,194,0) 60%),
-    radial-gradient(70% 70% at 88% 30%, #cfe0ff 0%, rgba(207,224,255,0) 60%),
-    linear-gradient(120deg,#fbe9cf 0%,#dfe3e8 45%,#cdddff 100%);}
-  .bg-geo{background:#f4f6f8;}
-  .bg-geo .shape{position:absolute;border-radius:999px;opacity:.85;}
-  .bg-geo .bar{position:absolute;height:34px;border-radius:999px;transform:rotate(-38deg);}
-  .bg-deep{background:
-    radial-gradient(80% 90% at 18% 12%, #1b46a0 0%, rgba(27,70,160,0) 55%),
-    linear-gradient(160deg,#13357e 0%,#0f2c66 100%);}
-  body[data-theme="deep"]{color:#f3f6fc;}
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  /* ===== ヘッダー ===== */
-  header{position:fixed;top:0;left:0;right:0;height:64px;z-index:5;
-    display:flex;align-items:center;justify-content:space-between;padding:0 38px;}
-  .brand b{font-size:24px;letter-spacing:.01em;display:inline-block;line-height:1.35;padding-bottom:4px;
-    background:linear-gradient(90deg,var(--blue-700),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent;}
-  body[data-theme="deep"] .brand b{background:linear-gradient(90deg,#cdd9f5,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .clock{font-variant-numeric:tabular-nums;font-size:18px;color:var(--muted);font-weight:700;}
-  body[data-theme="deep"] .clock{color:#9fb2da;}
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
 
-  /* ===== 横コンベア ===== */
-  .stage{position:fixed;inset:64px 0 0 0;overflow:hidden;cursor:grab;
-    user-select:none;-webkit-user-select:none;touch-action:none;
-    -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
-            mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);}
-  .stage:active{cursor:grabbing;}
-  .track{position:absolute;left:0;top:0;height:100%;display:flex;align-items:stretch;gap:24px;
-    padding:8px 28px;will-change:transform;}
-  .card{
-    flex:0 0 auto;width:clamp(460px,40vw,800px);
-    display:flex;flex-direction:column;
-    padding:16px 30px 18px;border-radius:var(--radius);position:relative;
-    transition:transform .18s ease, box-shadow .18s ease;border-left:8px solid var(--blue-500);
-  }
-  .stage:not(:active) .card:hover{transform:translateY(-4px);}
-  body[data-theme="soft"] .card{background:rgba(255,255,255,.74);backdrop-filter:blur(8px);
-    box-shadow:0 18px 44px rgba(40,60,110,.16);border-left-color:var(--blue-500);}
-  body[data-theme="geo"] .card{background:#fff;
-    box-shadow:0 14px 36px rgba(30,50,90,.12);border-left-color:var(--orange);}
-  body[data-theme="deep"] .card{background:rgba(255,255,255,.06);
-    border:1px solid rgba(255,255,255,.14);border-left:8px solid var(--gold);
-    box-shadow:0 18px 44px rgba(0,10,40,.45);}
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", -apple-system, "Segoe UI", sans-serif;
+      color: var(--ink);
+      position: relative;
+    }
 
-  .card .meta{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex:0 0 auto;}
-  .pill{font-size:14px;font-weight:800;letter-spacing:.06em;padding:5px 14px;border-radius:999px;
-    background:linear-gradient(135deg,var(--blue-700),var(--blue-500));color:#fff;}
-  body[data-theme="geo"] .pill{background:linear-gradient(135deg,var(--orange),#f7b733);}
-  body[data-theme="deep"] .pill{background:linear-gradient(135deg,var(--gold),#f3c969);color:#23314f;}
+    /* ===== 背景レイヤー（テーマで切替） ===== */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+    }
 
-  .overview{flex:1 1 auto;min-height:0;overflow:auto;
-    font-size:clamp(13px,1.0vw,17px);line-height:1.45;font-weight:600;
-    white-space:pre-wrap;word-break:break-word;
-    -ms-overflow-style:none;scrollbar-width:none;}
-  .overview::-webkit-scrollbar{display:none;}
+    .bg>div {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .5s;
+    }
 
-  .applicants{flex:0 0 auto;margin-top:12px;padding-top:10px;border-top:1px dashed rgba(120,135,160,.4);
-    display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-  .applicants .lbl{font-size:13px;font-weight:800;color:var(--muted);}
-  body[data-theme="deep"] .applicants .lbl{color:#9fb2da;}
-  .chip{font-size:14px;font-weight:700;padding:4px 11px;border-radius:999px;
-    background:rgba(37,99,235,.12);color:var(--blue-700);}
-  body[data-theme="deep"] .chip{background:rgba(230,181,60,.18);color:var(--gold);}
-  .none{font-size:14px;color:var(--muted);font-weight:600;}
-  .period{flex:0 0 auto;margin-top:10px;font-size:15px;font-weight:800;color:var(--muted);letter-spacing:.02em;}
-  body[data-theme="deep"] .period{color:#9fb2da;}
-  .assignee{font-size:14px;font-weight:800;color:var(--muted);}
-  body[data-theme="deep"] .assignee{color:#cbd8f2;}
-  .tap{flex:0 0 auto;margin-top:6px;font-size:12px;font-weight:700;color:var(--blue-500);opacity:.8;}
-  body[data-theme="deep"] .tap{color:var(--gold);}
+    body[data-theme="soft"] .bg-soft {
+      opacity: 1;
+    }
 
-  .empty{position:fixed;inset:64px 0 0 0;display:grid;place-items:center;
-    font-size:24px;color:var(--muted);font-weight:700;}
-  body[data-theme="deep"] .empty{color:#9fb2da;}
+    body[data-theme="geo"] .bg-geo {
+      opacity: 1;
+    }
 
-  /* ===== 案件詳細＋応募モーダル ===== */
-  .ov{position:fixed;inset:0;z-index:30;display:none;place-items:center;
-    background:rgba(15,25,50,.5);backdrop-filter:blur(3px);padding:18px;}
-  .ov.show{display:grid;}
-  .modal{width:min(980px,94vw);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;padding:34px;
-    box-shadow:0 30px 80px rgba(0,0,0,.35);animation:pop .18s ease;}
-  @keyframes pop{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
-  .m-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
-  .m-period{font-size:14px;font-weight:800;color:var(--muted);}
-  .m-assignee{font-size:14px;font-weight:800;color:var(--muted);}
-  .m-overview{font-size:20px;line-height:1.65;color:var(--ink);white-space:pre-wrap;word-break:break-word;
-    background:#f4f6f8;border-radius:14px;padding:22px 24px;max-height:54vh;overflow:auto;}
-  .m-apps{margin:16px 0 6px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-  .m-apps .lbl{font-size:13px;font-weight:800;color:var(--muted);}
-  .m-apps .chip{font-size:14px;font-weight:700;padding:4px 11px;border-radius:999px;background:rgba(37,99,235,.12);color:var(--blue-700);}
-  .modal label{font-size:14px;font-weight:800;color:var(--ink);display:block;margin:18px 0 8px;}
-  .modal input{width:100%;font-size:18px;padding:14px 16px;border:2px solid #d7dde6;border-radius:12px;outline:none;}
-  .modal input:focus{border-color:var(--blue-500);}
-  .row{display:flex;gap:12px;margin-top:22px;}
-  .btn{flex:1;font-size:17px;font-weight:800;padding:15px;border:none;border-radius:12px;cursor:pointer;}
-  .btn-ghost{background:#eef1f5;color:var(--ink);}
-  .btn-go{background:linear-gradient(135deg,var(--blue-700),var(--blue-500));color:#fff;}
-  .btn-go:disabled{opacity:.5;cursor:default;}
+    body[data-theme="deep"] .bg-deep {
+      opacity: 1;
+    }
 
-  /* ===== テーマ切替（H で隠せる） ===== */
-  .themer{position:fixed;right:18px;bottom:18px;z-index:20;display:flex;gap:8px;
-    background:rgba(255,255,255,.78);backdrop-filter:blur(8px);padding:8px;border-radius:14px;
-    box-shadow:0 10px 30px rgba(0,0,0,.18);transition:opacity .3s;}
-  .themer.hide{opacity:0;pointer-events:none;}
-  .themer button{border:none;cursor:pointer;font-size:12px;font-weight:800;padding:8px 12px;border-radius:9px;background:#eef1f5;color:#33405a;}
-  .themer button.on{background:linear-gradient(135deg,var(--blue-700),var(--orange));color:#fff;}
-  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);
-    background:#13357e;color:#fff;padding:14px 26px;border-radius:999px;font-weight:800;opacity:0;transition:.3s;z-index:40;}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-</style>
+    .bg-soft {
+      background:
+        radial-gradient(60% 60% at 12% 18%, #ffe6c2 0%, rgba(255, 230, 194, 0) 60%),
+        radial-gradient(70% 70% at 88% 30%, #cfe0ff 0%, rgba(207, 224, 255, 0) 60%),
+        linear-gradient(120deg, #fbe9cf 0%, #dfe3e8 45%, #cdddff 100%);
+    }
+
+    .bg-geo {
+      background: #f4f6f8;
+    }
+
+    .bg-geo .shape {
+      position: absolute;
+      border-radius: 999px;
+      opacity: .85;
+    }
+
+    .bg-geo .bar {
+      position: absolute;
+      height: 34px;
+      border-radius: 999px;
+      transform: rotate(-38deg);
+    }
+
+    .bg-deep {
+      background:
+        radial-gradient(80% 90% at 18% 12%, #1b46a0 0%, rgba(27, 70, 160, 0) 55%),
+        linear-gradient(160deg, #13357e 0%, #0f2c66 100%);
+    }
+
+    body[data-theme="deep"] {
+      color: #f3f6fc;
+    }
+
+    /* ===== ヘッダー ===== */
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 38px;
+    }
+
+    .brand b {
+      font-size: 24px;
+      letter-spacing: .01em;
+      display: inline-block;
+      line-height: 1.35;
+      padding-bottom: 4px;
+      background: linear-gradient(90deg, var(--blue-700), var(--orange));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    body[data-theme="deep"] .brand b {
+      background: linear-gradient(90deg, #cdd9f5, var(--gold));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .clock {
+      font-variant-numeric: tabular-nums;
+      font-size: 18px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    body[data-theme="deep"] .clock {
+      color: #9fb2da;
+    }
+
+    /* ===== 横コンベア ===== */
+    .stage {
+      position: fixed;
+      inset: 64px 0 0 0;
+      overflow: hidden;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+      mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+    }
+
+    .stage:active {
+      cursor: grabbing;
+    }
+
+    .track {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      display: flex;
+      align-items: stretch;
+      gap: 24px;
+      padding: 8px 28px;
+      will-change: transform;
+    }
+
+    .card {
+      flex: 0 0 auto;
+      width: clamp(460px, 40vw, 800px);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 30px 18px;
+      border-radius: var(--radius);
+      position: relative;
+      transition: transform .18s ease, box-shadow .18s ease;
+      border-left: 8px solid var(--blue-500);
+    }
+
+    .stage:not(:active) .card:hover {
+      transform: translateY(-4px);
+    }
+
+    body[data-theme="soft"] .card {
+      background: rgba(255, 255, 255, .74);
+      backdrop-filter: blur(8px);
+      box-shadow: 0 18px 44px rgba(40, 60, 110, .16);
+      border-left-color: var(--blue-500);
+    }
+
+    body[data-theme="geo"] .card {
+      background: #fff;
+      box-shadow: 0 14px 36px rgba(30, 50, 90, .12);
+      border-left-color: var(--orange);
+    }
+
+    body[data-theme="deep"] .card {
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .14);
+      border-left: 8px solid var(--gold);
+      box-shadow: 0 18px 44px rgba(0, 10, 40, .45);
+    }
+
+    .card .meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex: 0 0 auto;
+    }
+
+    .pill {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      padding: 5px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+      color: #fff;
+    }
+
+    body[data-theme="geo"] .pill {
+      background: linear-gradient(135deg, var(--orange), #f7b733);
+    }
+
+    body[data-theme="deep"] .pill {
+      background: linear-gradient(135deg, var(--gold), #f3c969);
+      color: #23314f;
+    }
+
+    .overview {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      font-size: clamp(13px, 1.0vw, 17px);
+      line-height: 1.45;
+      font-weight: 600;
+      white-space: pre-wrap;
+      word-break: break-word;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .overview::-webkit-scrollbar {
+      display: none;
+    }
+
+    .applicants {
+      flex: 0 0 auto;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed rgba(120, 135, 160, .4);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .applicants .lbl {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    body[data-theme="deep"] .applicants .lbl {
+      color: #9fb2da;
+    }
+
+    .chip {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 11px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, .12);
+      color: var(--blue-700);
+    }
+
+    body[data-theme="deep"] .chip {
+      background: rgba(230, 181, 60, .18);
+      color: var(--gold);
+    }
+
+    .none {
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .period {
+      flex: 0 0 auto;
+      margin-top: 10px;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: .02em;
+    }
+
+    body[data-theme="deep"] .period {
+      color: #9fb2da;
+    }
+
+    .assignee {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    body[data-theme="deep"] .assignee {
+      color: #cbd8f2;
+    }
+
+    .tap {
+      flex: 0 0 auto;
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--blue-500);
+      opacity: .8;
+    }
+
+    body[data-theme="deep"] .tap {
+      color: var(--gold);
+    }
+
+    .empty {
+      position: fixed;
+      inset: 64px 0 0 0;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    body[data-theme="deep"] .empty {
+      color: #9fb2da;
+    }
+
+    /* ===== 案件詳細＋応募モーダル ===== */
+    .ov {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      place-items: center;
+      background: rgba(15, 25, 50, .5);
+      backdrop-filter: blur(3px);
+      padding: 18px;
+    }
+
+    .ov.show {
+      display: grid;
+    }
+
+    .modal {
+      width: min(980px, 94vw);
+      max-height: 90vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 20px;
+      padding: 34px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .35);
+      animation: pop .18s ease;
+    }
+
+    @keyframes pop {
+      from {
+        transform: scale(.96);
+        opacity: 0
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1
+      }
+    }
+
+    .m-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .m-period {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .m-assignee {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .m-overview {
+      font-size: 20px;
+      line-height: 1.65;
+      color: var(--ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #f4f6f8;
+      border-radius: 14px;
+      padding: 22px 24px;
+      max-height: 54vh;
+      overflow: auto;
+    }
+
+    .m-apps {
+      margin: 16px 0 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .m-apps .lbl {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .m-apps .chip {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 11px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, .12);
+      color: var(--blue-700);
+    }
+
+    .modal label {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--ink);
+      display: block;
+      margin: 18px 0 8px;
+    }
+
+    .modal input {
+      width: 100%;
+      font-size: 18px;
+      padding: 14px 16px;
+      border: 2px solid #d7dde6;
+      border-radius: 12px;
+      outline: none;
+    }
+
+    .modal input:focus {
+      border-color: var(--blue-500);
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      margin-top: 22px;
+    }
+
+    .btn {
+      flex: 1;
+      font-size: 17px;
+      font-weight: 800;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .btn-ghost {
+      background: #eef1f5;
+      color: var(--ink);
+    }
+
+    .btn-go {
+      background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
+      color: #fff;
+    }
+
+    .btn-go:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    /* ===== テーマ切替（H で隠せる） ===== */
+    .themer {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
+      background: rgba(255, 255, 255, .78);
+      backdrop-filter: blur(8px);
+      padding: 8px;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .18);
+      transition: opacity .3s;
+    }
+
+    .themer.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .themer button {
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 8px 12px;
+      border-radius: 9px;
+      background: #eef1f5;
+      color: #33405a;
+    }
+
+    .themer button.on {
+      background: linear-gradient(135deg, var(--blue-700), var(--orange));
+      color: #fff;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%) translateY(20px);
+      background: #13357e;
+      color: #fff;
+      padding: 14px 26px;
+      border-radius: 999px;
+      font-weight: 800;
+      opacity: 0;
+      transition: .3s;
+      z-index: 40;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
 </head>
+
 <body data-theme="deep">
   <div class="bg">
     <div class="bg-soft"></div>
@@ -143,14 +555,16 @@
       <span class="shape" style="width:120px;height:120px;background:#bcd2f7;left:13%;top:60%"></span>
       <span class="shape" style="width:60px;height:60px;background:#f7c873;left:9%;top:74%"></span>
       <span class="bar" style="width:360px;background:linear-gradient(90deg,#1e40af,#7aa2f0);right:-60px;top:8%"></span>
-      <span class="bar" style="width:300px;background:linear-gradient(90deg,#f59e0b,#f7c873);right:-40px;top:66%"></span>
+      <span class="bar"
+        style="width:300px;background:linear-gradient(90deg,#f59e0b,#f7c873);right:-40px;top:66%"></span>
       <span class="bar" style="width:240px;background:linear-gradient(90deg,#2563eb,#9fc0f5);right:40px;top:44%"></span>
     </div>
     <div class="bg-deep">
-      <svg width="100%" height="100%" viewBox="0 0 1440 900" preserveAspectRatio="none" style="position:absolute;inset:0">
-        <path d="M0,760 C420,600 980,940 1440,640 L1440,900 L0,900 Z" fill="rgba(230,181,60,.16)"/>
-        <path d="M0,810 C460,690 1000,980 1440,720" fill="none" stroke="rgba(245,158,11,.55)" stroke-width="6"/>
-        <path d="M0,840 C460,730 1000,1010 1440,760" fill="none" stroke="rgba(150,190,255,.45)" stroke-width="3"/>
+      <svg width="100%" height="100%" viewBox="0 0 1440 900" preserveAspectRatio="none"
+        style="position:absolute;inset:0">
+        <path d="M0,760 C420,600 980,940 1440,640 L1440,900 L0,900 Z" fill="rgba(230,181,60,.16)" />
+        <path d="M0,810 C460,690 1000,980 1440,720" fill="none" stroke="rgba(245,158,11,.55)" stroke-width="6" />
+        <path d="M0,840 C460,730 1000,1010 1440,760" fill="none" stroke="rgba(150,190,255,.45)" stroke-width="3" />
       </svg>
     </div>
   </div>
@@ -160,12 +574,15 @@
     <div class="clock" id="clock"></div>
   </header>
 
-  <div class="stage" id="stage"><div class="track" id="track"></div></div>
+  <div class="stage" id="stage">
+    <div class="track" id="track"></div>
+  </div>
   <div class="empty" id="empty" style="display:none">現在表示できる案件はありません</div>
 
   <div class="ov" id="ov">
     <div class="modal">
-      <div class="m-head"><span class="pill">案件詳細</span><span class="m-assignee" id="mAssignee"></span><span class="m-period" id="mPeriod"></span></div>
+      <div class="m-head"><span class="pill">案件詳細</span><span class="m-assignee" id="mAssignee"></span><span
+          class="m-period" id="mPeriod"></span></div>
       <div class="m-overview" id="mOv"></div>
       <div class="m-apps" id="mApps"></div>
       <label for="nm">応募者氏名</label>
@@ -184,188 +601,191 @@
   </div>
   <div class="toast" id="toast"></div>
 
-<script>
-// ====== 設定（デプロイ前にここだけ書き換え） ======
-const SUPABASE_URL = "https://yklwkovbphqmiucnmcmu.supabase.co";
-const SUPABASE_ANON_KEY = "ここに anon（public）キーを貼る";
-// ===============================================
+  <script>
+    // ====== 設定（デプロイ前にここだけ書き換え） ======
+    const SUPABASE_URL = "https://yklwkovbphqmiucnmcmu.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_V34btW_6HTEdovDYrtiDUw_FDDb93KW";
+    // ===============================================
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const track = document.getElementById("track");
-const stage = document.getElementById("stage");
-const emptyEl = document.getElementById("empty");
-let cases = [];
-let applicants = {};
-let current = null;
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const track = document.getElementById("track");
+    const stage = document.getElementById("stage");
+    const emptyEl = document.getElementById("empty");
+    let cases = [];
+    let applicants = {};
+    let current = null;
 
-// ---- テーマ ----
-const themer = document.getElementById("themer");
-function setTheme(t){
-  document.body.dataset.theme = t;
-  [...themer.children].forEach(b=>b.classList.toggle("on", b.dataset.t===t));
-  const u = new URL(location.href); u.searchParams.set("theme", t); history.replaceState(null,"",u);
-}
-themer.addEventListener("click", e=>{ if(e.target.dataset.t) setTheme(e.target.dataset.t); });
-setTheme(new URL(location.href).searchParams.get("theme") || "deep");
-addEventListener("keydown", e=>{ if(e.key==="h"||e.key==="H") themer.classList.toggle("hide"); });
+    // ---- テーマ ----
+    const themer = document.getElementById("themer");
+    function setTheme(t) {
+      document.body.dataset.theme = t;
+      [...themer.children].forEach(b => b.classList.toggle("on", b.dataset.t === t));
+      const u = new URL(location.href); u.searchParams.set("theme", t); history.replaceState(null, "", u);
+    }
+    themer.addEventListener("click", e => { if (e.target.dataset.t) setTheme(e.target.dataset.t); });
+    setTheme(new URL(location.href).searchParams.get("theme") || "deep");
+    addEventListener("keydown", e => { if (e.key === "h" || e.key === "H") themer.classList.toggle("hide"); });
 
-// ---- 時計 ----
-function tick(){
-  const d=new Date();
-  document.getElementById("clock").textContent =
-    `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
-}
-tick(); setInterval(tick,10000);
+    // ---- 時計 ----
+    function tick() {
+      const d = new Date();
+      document.getElementById("clock").textContent =
+        `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    }
+    tick(); setInterval(tick, 10000);
 
-const esc = s => String(s??"").replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-const md = d => `${d.getMonth()+1}/${d.getDate()}`;
-const fmtPeriod = (createdAt, days) => {
-  const start = new Date(createdAt);
-  const end = new Date(start.getTime() + (Number(days)||7)*24*60*60*1000);
-  return `${md(start)} 〜 ${md(end)}`;
-};
+    const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+    const md = d => `${d.getMonth() + 1}/${d.getDate()}`;
+    const fmtPeriod = (createdAt, days) => {
+      const start = new Date(createdAt);
+      const end = new Date(start.getTime() + (Number(days) || 7) * 24 * 60 * 60 * 1000);
+      return `${md(start)} 〜 ${md(end)}`;
+    };
 
-// ---- データ取得（掲載期間を過ぎたものは表示しない） ----
-async function load(){
-  const guard = new Date(Date.now()-90*24*60*60*1000).toISOString();
-  const { data:cs } = await sb.from("cases")
-    .select("id, overview, title, created_at, period_days, registrant")
-    .gt("created_at", guard)
-    .order("created_at",{ascending:false});
-  const now = Date.now();
-  cases = (cs || []).filter(c=>{
-    const days = Number(c.period_days)||7;
-    return new Date(c.created_at).getTime() + days*24*60*60*1000 > now;
-  });
+    // ---- データ取得（掲載期間を過ぎたものは表示しない） ----
+    async function load() {
+      const guard = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: cs } = await sb.from("cases")
+        .select("id, overview, title, created_at, period_days, registrant")
+        .gt("created_at", guard)
+        .order("created_at", { ascending: false });
+      const now = Date.now();
+      cases = (cs || []).filter(c => {
+        const days = Number(c.period_days) || 7;
+        return new Date(c.created_at).getTime() + days * 24 * 60 * 60 * 1000 > now;
+      });
 
-  const ids = cases.map(c=>c.id);
-  applicants = {};
-  if(ids.length){
-    const { data:ap } = await sb.from("applications").select("case_id, applicant_name").in("case_id", ids);
-    (ap||[]).forEach(a=>{ (applicants[a.case_id] ??= []).push(a.applicant_name); });
-  }
-  render();
-}
+      const ids = cases.map(c => c.id);
+      applicants = {};
+      if (ids.length) {
+        const { data: ap } = await sb.from("applications").select("case_id, applicant_name").in("case_id", ids);
+        (ap || []).forEach(a => { (applicants[a.case_id] ??= []).push(a.applicant_name); });
+      }
+      render();
+    }
 
-function chipsHTML(names){
-  return names.length ? names.map(n=>`<span class="chip">${esc(n)}</span>`).join("")
-                      : `<span class="none">まだ応募はありません</span>`;
-}
-function cardHTML(c){
-  const text = c.overview || c.title || "(内容なし)";
-  return `<div class="card" data-id="${c.id}">
+    function chipsHTML(names) {
+      return names.length ? names.map(n => `<span class="chip">${esc(n)}</span>`).join("")
+        : `<span class="none">まだ応募はありません</span>`;
+    }
+    function cardHTML(c) {
+      const text = c.overview || c.title || "(内容なし)";
+      return `<div class="card" data-id="${c.id}">
     <div class="meta"><span class="pill">案件</span>${c.registrant ? `<span class="assignee">担当者：${esc(c.registrant)}</span>` : ""}</div>
     <div class="overview">${esc(text)}</div>
-    <div class="applicants"><span class="lbl">応募者</span>${chipsHTML(applicants[c.id]||[])}</div>
+    <div class="applicants"><span class="lbl">応募者</span>${chipsHTML(applicants[c.id] || [])}</div>
     <div class="period">掲載期間：${fmtPeriod(c.created_at, c.period_days)}</div>
     <div class="tap">タップで詳細・応募</div>
   </div>`;
-}
-function render(){
-  if(!cases.length){ track.innerHTML=""; emptyEl.style.display="grid"; return; }
-  emptyEl.style.display="none";
-  const html = cases.map(cardHTML).join("");
-  track.innerHTML = html + html;   // ループ用に2セット
-  measure();
-}
+    }
+    function render() {
+      if (!cases.length) { track.innerHTML = ""; emptyEl.style.display = "grid"; return; }
+      emptyEl.style.display = "none";
+      const html = cases.map(cardHTML).join("");
+      track.innerHTML = html + html;   // ループ用に2セット
+      measure();
+    }
 
-// ---- 自動（横）＋手動スクロール ----
-let offset = 0;            // 左方向に流す量(px)
-let setW = 0;              // 1セット分の幅（カード＋すき間）
-const SPEED = 0.6;         // px/frame（約36px/秒）
-let pausedUntil = 0;       // wheel操作直後の短い停止
-let pointerDown = false;   // 押している間は自動停止
-let dragging = false, startX = 0, lastX = 0, downCard = null;
+    // ---- 自動（横）＋手動スクロール ----
+    let offset = 0;            // 左方向に流す量(px)
+    let setW = 0;              // 1セット分の幅（カード＋すき間）
+    const SPEED = 0.6;         // px/frame（約36px/秒）
+    let pausedUntil = 0;       // wheel操作直後の短い停止
+    let pointerDown = false;   // 押している間は自動停止
+    let dragging = false, startX = 0, lastX = 0, downCard = null;
 
-function measure(){
-  const kids = track.children, n = cases.length;
-  if(n>0 && kids.length>=n*2){ setW = kids[n].offsetLeft - kids[0].offsetLeft; }
-}
-addEventListener("resize", measure);
-function normalize(){ if(setW>0){ offset = ((offset % setW)+setW)%setW; } }
+    function measure() {
+      const kids = track.children, n = cases.length;
+      if (n > 0 && kids.length >= n * 2) { setW = kids[n].offsetLeft - kids[0].offsetLeft; }
+    }
+    addEventListener("resize", measure);
+    function normalize() { if (setW > 0) { offset = ((offset % setW) + setW) % setW; } }
 
-function frame(t){
-  if(setW>0){
-    if(!pointerDown && t>pausedUntil){ offset += SPEED; normalize(); }  // 手動操作中以外は自動
-    track.style.transform = `translateX(${-offset}px)`;
-  }
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
+    function frame(t) {
+      if (setW > 0) {
+        if (!pointerDown && t > pausedUntil) { offset += SPEED; normalize(); }  // 手動操作中以外は自動
+        track.style.transform = `translateX(${-offset}px)`;
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
 
-// ホイール：横スクロール。直後はごく短時間だけ自動停止 → すぐ再開
-stage.addEventListener("wheel", e=>{
-  e.preventDefault();
-  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-  offset += d; normalize(); pausedUntil = performance.now()+200;
-}, {passive:false});
+    // ホイール：横スクロール。直後はごく短時間だけ自動停止 → すぐ再開
+    stage.addEventListener("wheel", e => {
+      e.preventDefault();
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      offset += d; normalize(); pausedUntil = performance.now() + 200;
+    }, { passive: false });
 
-// ポインタ：タップで詳細／横ドラッグでスクロール。離したら即自動再開
-stage.addEventListener("pointerdown", e=>{
-  pointerDown=true; dragging=false; startX=lastX=e.clientX;
-  downCard = e.target.closest(".card");
-});
-stage.addEventListener("pointermove", e=>{
-  if(!pointerDown) return;
-  if(!dragging && Math.abs(e.clientX-startX)>6){ dragging=true; try{stage.setPointerCapture(e.pointerId);}catch(_){} }
-  if(dragging){ offset += (lastX - e.clientX); normalize(); }
-  lastX = e.clientX;
-});
-function endPointer(e){
-  if(!pointerDown) return;
-  pointerDown=false;                       // ここで自動スクロールが即再開
-  if(dragging){ try{stage.releasePointerCapture(e.pointerId);}catch(_){} dragging=false; }
-  else if(downCard){ openCase(downCard.dataset.id); }   // 動かしていなければタップ＝詳細を開く
-}
-stage.addEventListener("pointerup", endPointer);
-stage.addEventListener("pointercancel", endPointer);
+    // ポインタ：タップで詳細／横ドラッグでスクロール。離したら即自動再開
+    stage.addEventListener("pointerdown", e => {
+      pointerDown = true; dragging = false; startX = lastX = e.clientX;
+      downCard = e.target.closest(".card");
+    });
+    stage.addEventListener("pointermove", e => {
+      if (!pointerDown) return;
+      if (!dragging && Math.abs(e.clientX - startX) > 6) { dragging = true; try { stage.setPointerCapture(e.pointerId); } catch (_) { } }
+      if (dragging) { offset += (lastX - e.clientX); normalize(); }
+      lastX = e.clientX;
+    });
+    function endPointer(e) {
+      if (!pointerDown) return;
+      pointerDown = false;                       // ここで自動スクロールが即再開
+      if (dragging) { try { stage.releasePointerCapture(e.pointerId); } catch (_) { } dragging = false; }
+      else if (downCard) { openCase(downCard.dataset.id); }   // 動かしていなければタップ＝詳細を開く
+    }
+    stage.addEventListener("pointerup", endPointer);
+    stage.addEventListener("pointercancel", endPointer);
 
-// ---- 案件詳細＋応募 ----
-const ov=document.getElementById("ov"), mOv=document.getElementById("mOv"),
-      mPeriod=document.getElementById("mPeriod"), mApps=document.getElementById("mApps"),
-      mAssignee=document.getElementById("mAssignee"),
-      nm=document.getElementById("nm"), applyBtn=document.getElementById("apply");
+    // ---- 案件詳細＋応募 ----
+    const ov = document.getElementById("ov"), mOv = document.getElementById("mOv"),
+      mPeriod = document.getElementById("mPeriod"), mApps = document.getElementById("mApps"),
+      mAssignee = document.getElementById("mAssignee"),
+      nm = document.getElementById("nm"), applyBtn = document.getElementById("apply");
 
-function renderModalApps(){
-  const names = (current && applicants[current.id]) || [];
-  mApps.innerHTML = `<span class="lbl">応募者</span>` + chipsHTML(names);
-}
-function openCase(id){
-  const c = cases.find(x=>x.id===id); if(!c) return;
-  current = c;
-  mOv.textContent = c.overview || c.title || "";
-  mPeriod.textContent = "掲載期間：" + fmtPeriod(c.created_at, c.period_days);
-  mAssignee.textContent = c.registrant ? "担当者：" + c.registrant : "";
-  renderModalApps();
-  nm.value=""; ov.classList.add("show"); setTimeout(()=>nm.focus(),60);
-}
-document.getElementById("cancel").onclick = ()=> ov.classList.remove("show");
-ov.addEventListener("click", e=>{ if(e.target===ov) ov.classList.remove("show"); });
-applyBtn.onclick = async ()=>{
-  const name = nm.value.trim(); if(!name||!current) return;
-  applyBtn.disabled=true;
-  const { error } = await sb.from("applications").insert({ case_id: current.id, applicant_name: name });
-  applyBtn.disabled=false;
-  if(error){ showToast("応募の登録に失敗しました"); return; }
-  ov.classList.remove("show"); showToast("応募を受け付けました");
-};
+    function renderModalApps() {
+      const names = (current && applicants[current.id]) || [];
+      mApps.innerHTML = `<span class="lbl">応募者</span>` + chipsHTML(names);
+    }
+    function openCase(id) {
+      const c = cases.find(x => x.id === id); if (!c) return;
+      current = c;
+      mOv.textContent = c.overview || c.title || "";
+      mPeriod.textContent = "掲載期間：" + fmtPeriod(c.created_at, c.period_days);
+      mAssignee.textContent = c.registrant ? "担当者：" + c.registrant : "";
+      renderModalApps();
+      nm.value = ""; ov.classList.add("show"); setTimeout(() => nm.focus(), 60);
+    }
+    document.getElementById("cancel").onclick = () => ov.classList.remove("show");
+    ov.addEventListener("click", e => { if (e.target === ov) ov.classList.remove("show"); });
+    applyBtn.onclick = async () => {
+      const name = nm.value.trim(); if (!name || !current) return;
+      applyBtn.disabled = true;
+      const { error } = await sb.from("applications").insert({ case_id: current.id, applicant_name: name });
+      applyBtn.disabled = false;
+      if (error) { showToast("応募の登録に失敗しました"); return; }
+      ov.classList.remove("show"); showToast("応募を受け付けました");
+    };
 
-function showToast(msg){
-  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),2600);
-}
+    function showToast(msg) {
+      const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2600);
+    }
 
-// ---- リアルタイム更新 ----
-sb.channel("rt-apps").on("postgres_changes",
-  {event:"INSERT",schema:"public",table:"applications"},
-  p=>{ const a=p.new; (applicants[a.case_id] ??= []).push(a.applicant_name);
-       if(current && current.id===a.case_id && ov.classList.contains("show")) renderModalApps();
-       render(); }).subscribe();
-sb.channel("rt-cases").on("postgres_changes",
-  {event:"*",schema:"public",table:"cases"}, ()=>load()).subscribe();
+    // ---- リアルタイム更新 ----
+    sb.channel("rt-apps").on("postgres_changes",
+      { event: "INSERT", schema: "public", table: "applications" },
+      p => {
+        const a = p.new; (applicants[a.case_id] ??= []).push(a.applicant_name);
+        if (current && current.id === a.case_id && ov.classList.contains("show")) renderModalApps();
+        render();
+      }).subscribe();
+    sb.channel("rt-cases").on("postgres_changes",
+      { event: "*", schema: "public", table: "cases" }, () => load()).subscribe();
 
-load();
-setInterval(load, 60000);
-</script>
+    load();
+    setInterval(load, 60000);
+  </script>
 </body>
+
 </html>
