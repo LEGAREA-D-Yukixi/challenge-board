@@ -162,19 +162,18 @@
       top: 0;
       height: 100%;
       display: flex;
-      align-items: center;
-      gap: 28px;
-      padding: 0 28px;
+      align-items: stretch;
+      gap: 24px;
+      padding: 14px 28px;
       will-change: transform;
     }
 
     .card {
       flex: 0 0 auto;
-      width: clamp(360px, 30vw, 520px);
-      max-height: 76vh;
+      width: clamp(460px, 40vw, 800px);
       display: flex;
       flex-direction: column;
-      padding: 30px 34px 26px;
+      padding: 24px 30px 18px;
       border-radius: var(--radius);
       position: relative;
       transition: transform .18s ease, box-shadow .18s ease;
@@ -209,7 +208,7 @@
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
       flex: 0 0 auto;
     }
 
@@ -236,8 +235,8 @@
       flex: 1 1 auto;
       min-height: 0;
       overflow: auto;
-      font-size: clamp(20px, 1.8vw, 30px);
-      line-height: 1.55;
+      font-size: clamp(15px, 1.15vw, 19px);
+      line-height: 1.45;
       font-weight: 600;
       white-space: pre-wrap;
       word-break: break-word;
@@ -251,8 +250,8 @@
 
     .applicants {
       flex: 0 0 auto;
-      margin-top: 18px;
-      padding-top: 14px;
+      margin-top: 12px;
+      padding-top: 10px;
       border-top: 1px dashed rgba(120, 135, 160, .4);
       display: flex;
       flex-wrap: wrap;
@@ -292,7 +291,7 @@
 
     .period {
       flex: 0 0 auto;
-      margin-top: 14px;
+      margin-top: 10px;
       font-size: 15px;
       font-weight: 800;
       color: var(--muted);
