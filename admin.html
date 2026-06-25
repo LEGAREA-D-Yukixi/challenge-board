@@ -233,6 +233,22 @@
       border-color: var(--blue-500);
     }
 
+    input[type="text"] {
+      width: 100%;
+      font-size: 18px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 2px solid #d7dde6;
+      outline: none;
+      background: #fff;
+      color: var(--ink);
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--blue-500);
+    }
+
     .hint {
       font-size: 13px;
       color: var(--muted);
@@ -553,6 +569,10 @@
     <textarea id="ov" placeholder="単価情報は削除してください。"></textarea>
     <div class="count"><span id="cnt">0</span> 文字</div>
 
+    <label for="reg" style="margin-top:24px">登録者</label>
+    <input id="reg" type="text" placeholder="例）山田 太郎" autocomplete="off" />
+    <p class="hint">通知メッセージに表示されます。ChallengeBoard 画面には表示されません。</p>
+
     <label for="days" style="margin-top:24px">掲載期間（日数）</label>
     <input id="days" type="number" min="1" step="1" value="7" />
     <p class="hint">掲載期間の日数です。</p>
@@ -589,6 +609,8 @@
       <p>内容を修正して更新できます。単価情報が残っていないかご確認ください。</p>
       <label for="eOv" style="margin-top:16px">案件概要</label>
       <textarea id="eOv"></textarea>
+      <label for="eReg" style="margin-top:16px">登録者</label>
+      <input id="eReg" type="text" placeholder="例）山田 太郎" autocomplete="off" />
       <label for="eDays" style="margin-top:16px">掲載期間（日数）</label>
       <input id="eDays" type="number" min="1" step="1" value="7" />
       <div class="row">
@@ -672,12 +694,13 @@
     async function registerCase() {
       confirmOk.disabled = true;
       const overview = ovInput.value.trim();
+      const registrant = document.getElementById("reg").value.trim();
       const days = Math.max(1, parseInt(document.getElementById("days").value, 10) || 7);
-      const { error } = await sb.from("cases").insert({ overview, title: firstLine(overview), period_days: days });
+      const { error } = await sb.from("cases").insert({ overview, title: firstLine(overview), registrant, period_days: days });
       confirmOk.disabled = false;
       if (error) { showToast("登録に失敗しました：" + error.message); return; }
       confirmEl.classList.remove("show");
-      ovInput.value = ""; cnt.textContent = "0"; document.getElementById("days").value = "7";
+      ovInput.value = ""; cnt.textContent = "0"; document.getElementById("reg").value = ""; document.getElementById("days").value = "7";
       showToast("案件を登録しました");
       loadCases();
     }
@@ -691,7 +714,7 @@
     async function loadCases() {
       const guard = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data: cs, error } = await sb.from("cases")
-        .select("id, overview, title, created_at, period_days")
+        .select("id, overview, title, created_at, period_days, registrant")
         .gt("created_at", guard).order("created_at", { ascending: false });
       if (error) { caseList.innerHTML = `<div class="list-empty">読み込みに失敗しました：${esc(error.message)}</div>`; return; }
       const now = Date.now();
@@ -711,7 +734,7 @@
         return `<div class="item">
       <div class="item-main">
         <div class="item-ov">${esc(text)}</div>
-        <div class="item-meta">掲載期間：${fmtPeriod(c.created_at, c.period_days)} ・ 応募 ${n}件</div>
+        <div class="item-meta">掲載期間：${fmtPeriod(c.created_at, c.period_days)}${c.registrant ? " ・ 登録者：" + esc(c.registrant) : ""} ・ 応募 ${n}件</div>
       </div>
       <div class="item-actions">
         <button class="mini edit" data-id="${c.id}">編集</button>
@@ -732,6 +755,7 @@
       const c = cachedCases.find(x => x.id === id); if (!c) return;
       editingId = id;
       eOv.value = c.overview || c.title || "";
+      document.getElementById("eReg").value = c.registrant || "";
       eDays.value = Number(c.period_days) || 7;
       editModal.classList.add("show");
       setTimeout(() => eOv.focus(), 60);
@@ -746,9 +770,10 @@
     async function updateCase() {
       confirmOk.disabled = true;
       const overview = eOv.value.trim();
+      const registrant = document.getElementById("eReg").value.trim();
       const days = Math.max(1, parseInt(eDays.value, 10) || 7);
       const { error } = await sb.from("cases")
-        .update({ overview, title: firstLine(overview), period_days: days })
+        .update({ overview, title: firstLine(overview), registrant, period_days: days })
         .eq("id", editingId);
       confirmOk.disabled = false;
       if (error) { showToast("更新に失敗しました：" + error.message); return; }
