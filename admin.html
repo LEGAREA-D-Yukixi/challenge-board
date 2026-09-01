@@ -565,8 +565,12 @@
 
   <div class="card">
     <h1>ChallengeBoard 管理画面</h1>
-    <p class="lead">案件概要と掲載期間を入力して登録すると、ChallengeBoard画面に表示されます。<br>掲載期間を過ぎると自動的に削除されます。</p>
-    <label for="ov">案件概要</label>
+    <p class="lead">案件名・案件概要と掲載期間を入力して登録すると、ChallengeBoard画面に表示されます。<br>掲載期間を過ぎると自動的に削除されます。</p>
+    <label for="ttl">案件名</label>
+    <input id="ttl" type="text" placeholder="例）データ基盤エンジニア（dbt移行）" autocomplete="off" />
+    <p class="hint">応募通知と一覧に表示されます。</p>
+
+    <label for="ov" style="margin-top:24px">案件概要</label>
     <textarea id="ov" placeholder="単価情報は削除してください。"></textarea>
     <div class="count"><span id="cnt">0</span> 文字</div>
 
@@ -608,6 +612,8 @@
     <div class="dialog wide">
       <h2>案件を編集</h2>
       <p>内容を修正して更新できます。単価情報が残っていないかご確認ください。</p>
+      <label for="eTtl" style="margin-top:16px">案件名</label>
+      <input id="eTtl" type="text" placeholder="例）データ基盤エンジニア（dbt移行）" autocomplete="off" />
       <label for="eOv" style="margin-top:16px">案件概要</label>
       <textarea id="eOv"></textarea>
       <label for="eReg" style="margin-top:16px">担当者</label>
@@ -688,6 +694,7 @@
 
     // ===== 登録 =====
     submit.addEventListener("click", () => {
+      if (!document.getElementById("ttl").value.trim()) { showToast("案件名を入力してください"); document.getElementById("ttl").focus(); return; }
       if (!ovInput.value.trim()) { showToast("案件概要を入力してください"); ovInput.focus(); return; }
       confirmAction = registerCase;
       confirmEl.classList.add("show");
@@ -697,11 +704,12 @@
       const overview = ovInput.value.trim();
       const registrant = document.getElementById("reg").value.trim();
       const days = Math.max(1, parseInt(document.getElementById("days").value, 10) || 7);
-      const { error } = await sb.from("cases").insert({ overview, title: firstLine(overview), registrant, period_days: days });
+      const title = document.getElementById("ttl").value.trim();
+      const { error } = await sb.from("cases").insert({ overview, title, registrant, period_days: days });
       confirmOk.disabled = false;
       if (error) { showToast("登録に失敗しました：" + error.message); return; }
       confirmEl.classList.remove("show");
-      ovInput.value = ""; cnt.textContent = "0"; document.getElementById("reg").value = ""; document.getElementById("days").value = "7";
+      ovInput.value = ""; cnt.textContent = "0"; document.getElementById("ttl").value = ""; document.getElementById("reg").value = ""; document.getElementById("days").value = "7";
       showToast("案件を登録しました");
       loadCases();
     }
@@ -730,11 +738,11 @@
       }
       if (!list.length) { caseList.innerHTML = `<div class="list-empty">登録中の案件はありません。</div>`; return; }
       caseList.innerHTML = list.map(c => {
-        const text = c.overview || c.title || "(内容なし)";
+        const text = c.overview || "";
         const n = counts[c.id] || 0;
         return `<div class="item">
       <div class="item-main">
-        <div class="item-ov">${esc(text)}</div>
+        <div class="item-ov"><b>${esc(c.title || "(案件名未設定)")}</b>${text ? "\n" + esc(text) : ""}</div>
         <div class="item-meta">掲載期間：${fmtPeriod(c.created_at, c.period_days)}${c.registrant ? " ・ 担当者：" + esc(c.registrant) : ""} ・ 応募 ${n}件</div>
       </div>
       <div class="item-actions">
@@ -755,7 +763,8 @@
     function openEdit(id) {
       const c = cachedCases.find(x => x.id === id); if (!c) return;
       editingId = id;
-      eOv.value = c.overview || c.title || "";
+      document.getElementById("eTtl").value = c.title || "";
+      eOv.value = c.overview || "";
       document.getElementById("eReg").value = c.registrant || "";
       eDays.value = Number(c.period_days) || 7;
       editModal.classList.add("show");
@@ -764,6 +773,7 @@
     document.getElementById("eClose").onclick = () => editModal.classList.remove("show");
     editModal.addEventListener("click", e => { if (e.target === editModal) editModal.classList.remove("show"); });
     eUpdate.onclick = () => {
+      if (!document.getElementById("eTtl").value.trim()) { showToast("案件名を入力してください"); document.getElementById("eTtl").focus(); return; }
       if (!eOv.value.trim()) { showToast("案件概要を入力してください"); eOv.focus(); return; }
       confirmAction = updateCase;
       confirmEl.classList.add("show");   // 単価確認（編集モーダルの上に表示）
@@ -774,7 +784,7 @@
       const registrant = document.getElementById("eReg").value.trim();
       const days = Math.max(1, parseInt(eDays.value, 10) || 7);
       const { error } = await sb.from("cases")
-        .update({ overview, title: firstLine(overview), registrant, period_days: days })
+        .update({ overview, title: document.getElementById("eTtl").value.trim(), registrant, period_days: days })
         .eq("id", editingId);
       confirmOk.disabled = false;
       if (error) { showToast("更新に失敗しました：" + error.message); return; }
