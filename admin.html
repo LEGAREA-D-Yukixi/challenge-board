@@ -1,822 +1,985 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ChallengeBoard 管理画面</title>
-  <link rel="icon" type="image/png" href="favicon.png?v=2" />
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --blue-900: #13357e;
-      --blue-700: #1e40af;
-      --blue-500: #2563eb;
-      --blue-300: #7aa2f0;
-      --orange: #f59e0b;
-      --gold: #e6b53c;
-      --ink: #1f2733;
-      --muted: #5b6675;
-      --danger: #e74c3c;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html,
-    body {
-      min-height: 100%;
-    }
-
-    body {
-      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", -apple-system, "Segoe UI", sans-serif;
-      color: var(--ink);
-      min-height: 100vh;
-      position: relative;
-      padding: 0 18px 60px;
-    }
-
-    .bg {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      overflow: hidden;
-    }
-
-    .bg>div {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      transition: opacity .5s;
-    }
-
-    body[data-theme="soft"] .bg-soft {
-      opacity: 1;
-    }
-
-    body[data-theme="geo"] .bg-geo {
-      opacity: 1;
-    }
-
-    body[data-theme="deep"] .bg-deep {
-      opacity: 1;
-    }
-
-    .bg-soft {
-      background:
-        radial-gradient(60% 60% at 12% 18%, #ffe6c2 0%, rgba(255, 230, 194, 0) 60%),
-        radial-gradient(70% 70% at 88% 30%, #cfe0ff 0%, rgba(207, 224, 255, 0) 60%),
-        linear-gradient(120deg, #fbe9cf 0%, #dfe3e8 45%, #cdddff 100%);
-    }
-
-    .bg-geo {
-      background: #f4f6f8;
-    }
-
-    .bg-geo .shape {
-      position: absolute;
-      border-radius: 999px;
-    }
-
-    .bg-geo .bar {
-      position: absolute;
-      height: 30px;
-      border-radius: 999px;
-      transform: rotate(-38deg);
-    }
-
-    .bg-deep {
-      background:
-        radial-gradient(80% 90% at 18% 12%, #1b46a0 0%, rgba(27, 70, 160, 0) 55%),
-        linear-gradient(160deg, #13357e 0%, #0f2c66 100%);
-    }
-
-    body[data-theme="deep"] {
-      color: #f3f6fc;
-    }
-
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      max-width: 820px;
-      margin: 0 auto;
-      padding: 26px 4px 8px;
-    }
-
-    .brand b {
-      font-size: 22px;
-      letter-spacing: .01em;
-      display: inline-block;
-      line-height: 1.35;
-      padding-bottom: 3px;
-      background: linear-gradient(90deg, var(--blue-700), var(--orange));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    body[data-theme="deep"] .brand b {
-      background: linear-gradient(90deg, #cdd9f5, var(--gold));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .themer {
-      display: flex;
-      gap: 7px;
-    }
-
-    .themer button {
-      border: none;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 800;
-      padding: 8px 11px;
-      border-radius: 9px;
-      background: rgba(255, 255, 255, .7);
-      color: #33405a;
-    }
-
-    .themer button.on {
-      background: linear-gradient(135deg, var(--blue-700), var(--orange));
-      color: #fff;
-    }
-
-    .card {
-      max-width: 820px;
-      margin: 18px auto 0;
-      border-radius: 22px;
-      padding: 36px 38px;
-    }
-
-    body[data-theme="soft"] .card {
-      background: rgba(255, 255, 255, .78);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 22px 54px rgba(40, 60, 110, .16);
-    }
-
-    body[data-theme="geo"] .card {
-      background: #fff;
-      box-shadow: 0 18px 44px rgba(30, 50, 90, .12);
-    }
-
-    body[data-theme="deep"] .card {
-      background: rgba(255, 255, 255, .07);
-      border: 1px solid rgba(255, 255, 255, .14);
-      box-shadow: 0 22px 54px rgba(0, 10, 40, .4);
-    }
-
-    .card h1 {
-      font-size: 24px;
-      margin-bottom: 6px;
-    }
-
-    .card h2 {
-      font-size: 20px;
-      margin-bottom: 4px;
-    }
-
-    .card .lead {
-      font-size: 14px;
-      color: var(--muted);
-      margin-bottom: 24px;
-      line-height: 1.8;
-    }
-
-    body[data-theme="deep"] .card .lead {
-      color: #aebfe3;
-    }
-
-    label {
-      font-size: 14px;
-      font-weight: 800;
-      display: block;
-      margin-bottom: 10px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 300px;
-      font-size: 18px;
-      line-height: 1.6;
-      padding: 18px 20px;
-      border-radius: 14px;
-      border: 2px solid #d7dde6;
-      outline: none;
-      resize: vertical;
-      font-family: inherit;
-      background: #fff;
-      color: var(--ink);
-    }
-
-    textarea:focus {
-      border-color: var(--blue-500);
-    }
-
-    input[type="number"] {
-      width: 170px;
-      font-size: 18px;
-      padding: 14px 16px;
-      border-radius: 12px;
-      border: 2px solid #d7dde6;
-      outline: none;
-      background: #fff;
-      color: var(--ink);
-      font-family: inherit;
-    }
-
-    input[type="number"]:focus {
-      border-color: var(--blue-500);
-    }
-
-    input[type="text"] {
-      width: 100%;
-      font-size: 18px;
-      padding: 14px 16px;
-      border-radius: 12px;
-      border: 2px solid #d7dde6;
-      outline: none;
-      background: #fff;
-      color: var(--ink);
-      font-family: inherit;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--blue-500);
-    }
-
-    .hint {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 8px;
-    }
-
-    body[data-theme="deep"] .hint {
-      color: #9fb2da;
-    }
-
-    .count {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 8px;
-      text-align: right;
-    }
-
-    body[data-theme="deep"] .count {
-      color: #9fb2da;
-    }
-
-    .submit {
-      margin-top: 24px;
-      width: 100%;
-      font-size: 18px;
-      font-weight: 800;
-      padding: 17px;
-      border: none;
-      border-radius: 14px;
-      cursor: pointer;
-      color: #fff;
-      background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
-      box-shadow: 0 12px 30px rgba(30, 64, 175, .35);
-    }
-
-    .submit:disabled {
-      opacity: .5;
-      cursor: default;
-    }
-
-    /* 登録中の案件リスト */
-    .list-sub {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 18px;
-    }
-
-    body[data-theme="deep"] .list-sub {
-      color: #aebfe3;
-    }
-
-    .item {
-      display: flex;
-      gap: 14px;
-      align-items: flex-start;
-      justify-content: space-between;
-      padding: 16px 18px;
-      border-radius: 14px;
-      background: #f6f8fb;
-      margin-bottom: 12px;
-    }
-
-    body[data-theme="deep"] .item {
-      background: rgba(255, 255, 255, .06);
-    }
-
-    .item-main {
-      min-width: 0;
-      flex: 1 1 auto;
-    }
-
-    .item-ov {
-      font-size: 15px;
-      line-height: 1.5;
-      color: var(--ink);
-      white-space: pre-wrap;
-      word-break: break-word;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    body[data-theme="deep"] .item-ov {
-      color: #eaf0fb;
-    }
-
-    .item-meta {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 6px;
-      font-weight: 700;
-    }
-
-    body[data-theme="deep"] .item-meta {
-      color: #9fb2da;
-    }
-
-    .item-actions {
-      display: flex;
-      gap: 8px;
-      flex: 0 0 auto;
-    }
-
-    .mini {
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 800;
-      padding: 9px 14px;
-      border-radius: 10px;
-    }
-
-    .mini.edit {
-      background: rgba(37, 99, 235, .12);
-      color: var(--blue-700);
-    }
-
-    .mini.del {
-      background: rgba(220, 60, 60, .12);
-      color: #c0392b;
-    }
-
-    body[data-theme="deep"] .mini.edit {
-      background: rgba(150, 190, 255, .2);
-      color: #cdd9f5;
-    }
-
-    body[data-theme="deep"] .mini.del {
-      background: rgba(255, 120, 120, .2);
-      color: #ff9b9b;
-    }
-
-    .list-empty {
-      font-size: 14px;
-      color: var(--muted);
-      padding: 6px 2px;
-    }
-
-    body[data-theme="deep"] .list-empty {
-      color: #9fb2da;
-    }
-
-    /* ダイアログ／モーダル */
-    .ov {
-      position: fixed;
-      inset: 0;
-      z-index: 30;
-      display: none;
-      place-items: center;
-      background: rgba(15, 25, 50, .55);
-      backdrop-filter: blur(3px);
-      padding: 18px;
-      overflow: auto;
-    }
-
-    .ov.top {
-      z-index: 45;
-    }
-
-    .ov.show {
-      display: grid;
-    }
-
-    .dialog {
-      width: min(480px, 100%);
-      background: #fff;
-      border-radius: 20px;
-      padding: 30px;
-      box-shadow: 0 30px 80px rgba(0, 0, 0, .4);
-      animation: pop .18s ease;
-    }
-
-    .dialog.wide {
-      width: min(640px, 100%);
-    }
-
-    @keyframes pop {
-      from {
-        transform: scale(.96);
-        opacity: 0
-      }
-
-      to {
-        transform: scale(1);
-        opacity: 1
-      }
-    }
-
-    .dialog .ic {
-      width: 54px;
-      height: 54px;
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      font-size: 26px;
-      margin-bottom: 16px;
-      background: linear-gradient(135deg, var(--orange), #f7b733);
-      color: #fff;
-    }
-
-    .dialog .ic.danger {
-      background: linear-gradient(135deg, var(--danger), #ff7a7a);
-    }
-
-    .dialog h2 {
-      font-size: 20px;
-      margin-bottom: 8px;
-      color: var(--ink);
-    }
-
-    .dialog p {
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    .dialog label {
-      color: var(--ink);
-    }
-
-    .dialog textarea {
-      min-height: 220px;
-    }
-
-    .row {
-      display: flex;
-      gap: 12px;
-      margin-top: 24px;
-    }
-
-    .btn {
-      flex: 1;
-      font-size: 16px;
-      font-weight: 800;
-      padding: 15px;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-
-    .btn-back {
-      background: #eef1f5;
-      color: var(--ink);
-    }
-
-    .btn-ok {
-      background: linear-gradient(135deg, var(--blue-700), var(--blue-500));
-      color: #fff;
-    }
-
-    .btn-del {
-      background: linear-gradient(135deg, var(--danger), #ff6b6b);
-      color: #fff;
-    }
-
-    .btn-ok:disabled,
-    .btn-del:disabled {
-      opacity: .5;
-      cursor: default;
-    }
-
-    .toast {
-      position: fixed;
-      left: 50%;
-      bottom: 30px;
-      transform: translateX(-50%) translateY(20px);
-      background: #13357e;
-      color: #fff;
-      padding: 14px 26px;
-      border-radius: 999px;
-      font-weight: 800;
-      opacity: 0;
-      transition: .3s;
-      z-index: 50;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAiLElEQVR4nNV7eXwc1ZXud29V9d6tbq2WtVmyvEhesWxsDEY2xo7BGAKkBYQMgZDICWAgQBZmkrSbIRNgQiArsTNJmEB4QR0gCYaw2NjtDRtbBnmRF22WtXerpd5rv3f+kE3IeIVH3sz7fj+pWtVVV+d8dc49555zi+D/W/iFv30OMQD8k4xCPiVp/m7MdY11Yl1jHerq6gDUAWg+efwbmpuB5uZmrF69Wr+wYf1CXV0nHbvXxYGw8akI+2kMEggE6NinIIJBsI9zL+ecAGs/lGPt2pMjBYPnHMeTVz/XMBizWgQ7xFTP6EDzCSBAgXPf999xwQQ0NfmFqqorKZqbMXf1egNnMbn6+nrb5aXx7914UwmvWHApEZ1VAAww5gBFDgyNYiiWg84TMsKb3tYe/0Fw7ZnG4TxAQ6FWEgoBoVDIHDdu2o2CwGebJtVNSD5CpPs5F8G4EQdhy2ODe/d8RKcLdocLImBzICAuCQY/NDlCgF9+pU5qXLfXWLVqlf3JJ6vHbW068Gzf/hO5+48lbZPKXROXLyvGvCvmIJGkUOU0Cou9cJeXAs4CALPBuAuxoT0QCD9sMq7tPzIo9kd6f+e/riC05qH90n/8/LljABAI1Fq2bGllbW0zqwgxjwqiBYpuBZh+TBKUR00z9sbg4GD01hUrPLH2dvWN9nb145BwXgIIATgHbrvtsxd/6ZbKBSd2vY/bglt+BUAGgKe+85kb5k23vTRyIoKD+4bQM6CiIpfqV6yswYybHoSaOQhDi8OZOxOEFINzClH0gjMZMPaDZfslQ9eQTsiID0ahGBp6ezPwOsWf9ySsr9zy1d9vOiVLaWnNNwH4FM2WGY68/+hHxKTfvO+WZYRYHu6J6Nfrup4MhS5sYhTP9SXnoNdcc1nOjcuqn1t67WWLyiuKPNrcQpRXOr74XrORzL/ijtscL93S4b74C7xySbFWkN8nbfzLIbgdTMopLIJo80JJCbA6vRAkLwAnQArAuRMQNHDRAkj7GFHj0EejAI8iO5AiRn+S6V7n3Y40u/PNJy7bdfAEPzxzvO27y/659pdw7r+YZsIbUVcnobnZbGysE9avb9YX11e1x0dova0jWhL8wS9HA4EADQaDn5yAvXsbJULW67/697If3f7l+StHhwZ4+NkNmmIaqKgumHPH3AnYeejEne8Kl+lLJpcRfXhQjPaPUgslKMyX4Cke833RKkO0FYJzCYAAAgmADkAF2AC4maZUtMGZ74bL5gFLGTBNi6AlkkZ/54gtmcHieMpYvDNq/fJvH0h9p1N2bvrXZwA0N5s8EMD68ePR1LRROHosu2rB/CmmaXVdYFQ5BwFNTX7h1VeLzV9844pFn11VdGW0d7/2n4+8IXRHbRZbYQVqRzhb2VDFp9eKgWx8NrjkgZY4KiT7I7BIBG6PFfb8MnCegdUugtMCiJIDgATTOOV1WQApmKoCXZVAWD+ycRWKbMLhEGDTRLEkz8ZHRzJscFghqZ6USLn5+OwZwvHQdxe++blH7r+XkAYNGIs6P3z0/keKikuFwWjc0tQUsLhcI2SM5U9AgL/KRxsagnrHtkZv/nhLaejpbdqmFia0yoXwxGw4rnI6fuoIaic7jSJPChZBF7MwwTiBw07hznNCcuVCFDNo2ZfCS8//B6bPqMK0ukWomb0EzEgDNA1mmDBNAkI1mHIaSlKHYRBQakJOa0ikTSKrpmAVAY0SHB/I6iYfnlDgpqt/eu9P/M//7Iv/9vYBb7OSHkZlVWlmXPEE9+uvbX/2ngcfqwNOhViAEAKcZT44EwEEdcUmAMf+LqWxrMbgu3ePiodGXUhpKRiagoOaiedfOoB/bnSJVjMLIgrgAkFeoQeKrMGZ74NgywF4P/bt7sbBvS2I93bA5yvB9LorYRoJEKShZWNQswIs1iFwQ4GSVMEJATVNaKoJ3RiT+dQxxylKxTkiG4zKfLh/MHfZ1PwffuHqiUgqVZg8qQqiNR/TZ0ye/Ooff/TjoaGhLCHk4U9kAYQEmQewWal0TTKqYTjFSUanEAUKk9kQjw2is1uAqjpg6gzE5JCcTpRfPAcd4e2w5RRAtNogZ9Loae+BQBk8efmYteBKMJYAoIBAhS4rMFQBFBq4pkIC4HSIGOhJYzihQxIJnA4RuQaHSUVU1Y5HbZVIC3QfrLklvHRCGauYNIc7cmvAmCCCECy4bIWLGfK9I9FObNww7u7eviF6+HD/tsef/t1VgUBADH4knJ+RAI6x2DgT4G63QzO5ZElrEgQqwNBl1EwpwOqrHBiIylCHh5HrdYIQgmw0iqGuAdhcElyFpRAkGYPtMfQfj0MgDDabDXYXBedJgHDoSgqGxkCpBooU0iMqeiMK3j+cxJ829iGrclx3kQemYiKZMUCICYmriA2pODogo6RUJpMnioKqDsIctcLmLAGRXEiMRJBKRtFx7CAUJf0fmZQMVdE6Tqp3WpZ41iiQkwMIVIQjpxAGpeBcB6EEclaHw27BoukK9r7TgvprLgVhKka7h9F3NIuCQgl2bx4AGW2t3ejvicDtoZgweRIcLg2mwUEFE6o6AtMwIVri4HIKT/2qE29t6YOu6cjoFIppIpG2AxpDMq2BALBqGXR06GjrSEHiCvSYCd2iIm28D3vuxcxXdjnduyfcl4x0Nxw71qsHnmza81GdzpRen0YAOfm7JcFJIs4tztxy5OVI4MyA1SLieHc/Aj8x4bUJ8LgorrrNA6ZkoMoGCAFsTissnlwwFkf3sR5ochbc40LZpAkQJQdUOQXG4zC0DHJyErCKw4jHNHBFR+V4O7ojFiSTJsryOHwOEQMZBZwDOS4RDquIPm7AYIDXQ+CwUUg2G0YiBo4PHsNM92Qcae3IPPgvP9l5Sp8f/3iNdWRkvxkMnnnxdCYL4JwzgRCSsueWPEZsvm9PmOA11J0ZkYgiQAn60gyHoxRXz1bg8ligphNQZQamm3D4vLC63cgk+nCiLQJKAYfTAa8vB+CAIKYQGejEL9Y2weqzoqgImFcp4K5bqrDv4DAefT6BtBbHtHEUAgdUncFkgNctQckaiMUNCAAKimywelwQHA68824fsrJMqmuOoLYsXvpe03UbNLiEd/Zh+333/fT7PBCgQYTPaOlncYEtBIA+s1rYDsiYuWAmJ79/F4ZpAcBBKSASAwU+CVa7iPhQDBmFgzEOuycHgkXHYEcvDh4ahmFyTKguxZQZFWAsBkJT0DUDXW0D2HVMRUbV8Oiaaqyc70FrZxL9Q0nYJRN5LisMxqGbHJQS+DwWDMYUJFMqKsqcKJnggcNrRdfhVox0DGLRolJi5V2orbQ6PPkVK70TpqKqjq+wODw28r3Wf23y+82GUMi8IAK2nFyTPr/u957bvvEQZl88D1XjdqAtSuGwKCCEwmQUbjuFQDmUZBqaxkEFQHJIoHwInR396B4GxtkoLJKEob5OWB0UOTkCfF6Gf37sMzhypBsDHRHUVjowMiyjPwYkM0nMKBNR4LEildJg6Aw2icLjEHCsLwtV1jGpqhATZk1ANh3H0AfdWDiVwJAT2BruxN5Ne7lPSptLro2R+f7Pk0sXDH3Hv+DVpxpCvSOcgxDy9/nAGQlYEgwbB5sClsd+9cpfrooar1ZPLl918fwq4+Af+0WnhQBgIMSA22mHKAjQMypgclBCQa0AN2JoaRnFwLCB3EIdze8ewLGj3chxO1CYb8fnvngxJk0VUTk+D/EqitGeNNrbU9hxMANRpMhzSXCIQF/GQEZnKHCIUBUTQyM6SrwCJlQXI6eyHj3vvorcQhu2thKEthiYd3Eaf91fRJymRXRIu1E2pQS11aJ27+JeHtp1ZlunZz4NzLo5qD3/9v5M+L3OhKzmY9VVc1HgBRTDAsZFUG7AZqeAqUKXNTAOWKwC3DkMuprBpOo83PGlizF/6cUoqyyFxWJBYngUzTvbkU4NQdc0xAfSGBmUoad1JNIm+iPDcFkMlOY6kZFNZDUTJoCiHAuiSR1pzUBG4YCdY7TzA0SODIHZJLz5gQsp6oOsGPDmOJCUxuP9LgHdhw6CShkhUV5+NjXPkgkCfM7Cf5pce+mcP764k5YXFLXgkktnCZfN3YYN4TisEgWIFQQEpi5DzWggHNAJsOeDEUyzOrFgfhGWXzsforUIqqwim04jPdKHY4e6kZtPYSgKoBuQsxxQTYQPJaEZJnxOC6ryRcQTOmSNwyJSuGwC2gZlcAZ4PBZ4PBzd4S1o2TOCiunFmF6SgtUOHGoTEYmqGE1p6CWAxk1AHjVzEjlnJeA0CwgENgsAcPlVi35726riGbkeMeeN7ceRUJPkyzdXINfJYTACEBHMZNAyUWSzJiglONAro/NEHB3HUlj3zAd45Y/H0H64B/vf7wBjKrwFTiy8vBS+PAksq0NOqpCoCUU20NmfhShS5DosMHSGjGJCMzlcNgGyzhBLG5AAlFW4wZMKor0Gdh7j6D8+is/VE1iNEfQOKdA0DsYp3C4Cn4vh0O6I5eXN5qnofn4LWLsWCAaBB79QoCrpCBuXrzMlwcT39+7DkgV5uH65D7/9UxwMFIbOoGYy0GQDsZQBBQTTJrkxEE1jcFhDUVLBi7/bBpsk44DXAU+uB7t3HkN5hQVL57vgYgQn+mS4AdxZX4jLqt0wDQ5DZ5A1Bp1xuKwUkbgGXTcxziOhbIIbWlpF+yjBm2352B+VYX0nhbaIB6LEAGKBRBRUFsMokkza1p4K7lMLkk1+v0DOEAXOMAdsGWPG6CMedy6tzs2SjML4vuYhcyQygsbbylhNmQldZ8hmdKgag6qaSGUMMBDs3D2M7eFuyKkUfDkEybQKWSHoH0gjMaIiq5jgTMYrf+lBe7eCZ9+K4lhUQ8+ojmKPhCK3CNXk0E0Gh02AVRIQz+hgjGNipRs5TgGKYmD/kAWxjAVdI/k4OJAHg1EwZgEnFhQ7ZcypAus6zuiJtLU1HA4bo77OM853Zzi5eOxgmwRf8UVYsagcK2apxCpIwluvnUBZgUHvucXLnVaO/jiBpujQDMAmEKhpHYxSzJ3txaULCnHsWBSSRcDho8OARHDg6CAWXjJuLJFxi/jrtiF4HcBbHyRwZFDFrq4MDvbJ6B5WwRhgl+iH7uBziqiudkPiJkYMN7bu98AiAVaLCJuFgnMTVLQBhoqVlzCztNiFQz36ju1dzj1NTX6hcV3zBWeCY/rbfJyKXuT4SujEshMQzcQ7+96jj4Xf7nj+2mXjCzftSrK+HoUqSRVEpJBVhppxNnxmRQF8eRbQggrAMw96ug+bXt+OsjIbduzKoOf4IIyMghsu82Hz7iGMc4uIZA0wYkI3CZyigKORLOyShKmFAhJZA7oJlBfakZ9vB9FV7DgmYmBEgkhNaLoGxkyIooRMNoultSn+lVuLSPsx2dJj677y5Zd3KC+/fPYi6WkWsGXMA9B1dKctFT2AHdu2KbubB1fdvPqZpU/8+tW3W3ZFl/R0DA/ddYvXcIoaiw5qcHlFaLoJUAKRcTBZhSunBIXF05GfL8B/fR7mThXQ6M9HbQHB1Re50N+dxMKJblw/LxcFborOARleK4Vh6GAgcIocmmEikjFgEQgqKl0QDBNDoxyvb0+BkiQIlcAYBxVEaIqCyycP44nvlRr5xV7aOWA8GQx2K01NfuFsyp/RAqLRKAeA5r0dR1SFz9vRqj89PEzs99x3z+153gPPB4PhVkMStt59R7m/fq7VjPam4HaLUE1AT+lQsgYEAjBug2GaUDMJZLpj4DpFOqZgYg6QTKjIJHSUugi6erOYnGeDJptwWQXs78nALhLYJIqszkE5x6RSB4oL7YCmYEfbePSMToXT3gsgA4YFyGQGcN2iQ/zJH67Ui4oVy7bX9z+25oc7H968uV5csuT0ie+cFtDQ0MAA4I41P/3a3pYTYl/MNsNuJeN/9uOfPdvaWsjXNdZJLUeHb289OPrGjEkOYSSmsHRch8VKQcABCpg6oGe7oKc2wRjthZY0oaR0DB1Po6szjZ4TWWSSOqJJE0OjOjTVRKXPAmoyFDslOCQK1WBwiBSVBTbMmeGDU+LoH6Z4+0AhJEGFIDBougVE78bdt+rmr/7zG0bRxKmW99458cTlN7/6cFOTX1iyJHzWBs5ZLQAA9/v9wpYtEfPNlqJH9nfyvV1bn361vj4ghkJBwx+oFTY0D2T9S4ufrpmdt6J1f8xw2qllymQ3jnZmoHMCSWPQRnphxk9AjipIj6rQDYLIoIzIsIa0wsZKXhxIZQ0oOoeiGdA0BoeFgGgEkkBRVihi+aJcOHJcyMay2NgKdI/EYJXSSCYimFxq4JtrZrPPffkmgSV7hPdeCj0x/6bnvnWwyW+Z5g9dUHX4vI2R+vqAuHgxEAwGDc5BQg1+qs/XViU7u66tneG+I/xmH1u+ooTERzSyZesQlvknItfU4cq3gADIxDVosg5NZfigJYHRuI6sZiIlm8gqJnSDQdc5BArIJkcsY8BpEVCVJ2Dl9XMwd+UcpI/swtZwFN9+0Y5RJR+Ftgj+6YZK456vXyUUVVWQ0e7ePa8/9+xfvvDdzY9u3hwQlyw5Vfb6sGd51n7hORsjJ5sLRvjkUjoU8tOGUMhsmnP5D667dvzU3zd1mf3DqpA/cRyc3jTP3RMl2ZSGHAvH8PEUrE4JmbgGU2VIZQyMJnQksgaGExoMg8NgHPTkI5AkCpmxD/8uKbBg0szx8E6sRDoRw/PvWpDJxHHX9bJ551cu5jWzSsRId5vx0g+f3bXnD1uvebwZCc6bBEIaPhLuzt8o/bjdYQKA3zcrx2stzX2291DXfQVFVrLmqbu2lVbmj3vj6RcEW6GLOEQgHVGQ47MgNqpBVU2MxHR09GYRS+mQFRMqA0zCYeFAjl1ExTgbwofjEAWKIreES2bl4rNrZkIeGMGLvx/mXVk3v/MWL5k13UO6O1MYGkhs+OsLWx7//kbsBAhbt26OtHp180mzD1AEgKJfo5ZQsMETwdazdY7PaQFnAAeAH7ck4mhJfPabD1z7L7Fhdci0Wf5oHTf//tJJ72r9fT0WR64T8aQOi0RBTA5DYUhlxp6+rjMwAhiEQ9E53C4BC2d6sfNwHAbjkESAGiZmLSmBaOjYuqEPiy7LxerZXnrogwR+/XTHX/va+n/26MbR1wGAUAJmckJI8998vh4UwaAhe9bIdk+u/VwKfVwC4Pf7BSCEfN+ypZIgPipJmVfe/NPRv5ZMnMFzKibQ/c1H4XbbIQDoHZARTxnoHJARSYxNfk6JwACBqjLkuSVcOScXbb1Z9I9oKMqxQTJMLL9+IqYtKEb4xcO8bFo+8RQ5yLpnOt7btan3a6+cSOyH5ZnKr3/9HbvHE1KDQc4+UuQg9fUBIRwOGrNu/tk0dajQFmk51Db21Zn7hJ9og0RjY520fn2zftdXVrzl9VhrDh2ML1rz1dq3Fs4hk5qe3MrljE7SGQP721JQdQ4GjqRqwjQ5OAC3TcDEYjvmTHKja0BGS0caRV4LSj0ck+eVYNkXZ2LPhiM4tC/G5i4swKuv9//TD17ufAEgIISjpPyBL/V2T3kOOPPukpn+H11hZvlX4+2oywxFbogv6zyIUC0/kwuctSByLhQXu8baBwTdjKO0pMz23gt/7CrpPNzPJs/08Y4TWWw7MIoRxURKM5FWTDDGQQggCQQm48j3WjA4oqOjT0aBx4Jp5Tasun0lPnPnFaz93ePst3/IwFvgpIe7TP6Dl3O2+AMBSwCc5hc/cHvSVLaOKT82y9fWBiwAUFj6+HeqLno+SpijfrDduLPv6F/q4vHHWxBqYmebEM9PgL9JqK/fLP4tpAAnS8w8Wuy+O5lSuM1KCgzOHX9+I031uEp9TtEkhCIlG3C7BEypdMNuoTA5AedAQmF4fvsw9nWk4baJmDzJhSvvXMonfeazSHfH6J83ctpL83CgSzVriiA89UX5xVAwqC2ur6fRfvfvkkVG90lJGBAQW+0DHACYMbxPcmefaXnpq4HY0W+lgHB8TG5y1mTonC5QV7dOam4+s5k1NfmFUAgo9Ka+nZNjf9Q0DAxGlccXFUQWIa0ufL89ZZqcC9OmeuHyWLBl+yAYKDqGshhMaCCUYGKeFTcsLcVlK4qNkvIiQVFANr07svvx303aQWB/gCh79Km5PSRLFqb2dc++d+H8cf8HAEKhhtPS27rGdVKmy/35RHvH1QNd370ZCBBgLT+X8sB5LKC5ebU+afmTs6Z/9sWGSUt/VAUAfn+TgECAntq7oxP2kqLoTabJlcICm/crT7dcasmxH7JbqZBMa6y8OhflVR5MLbUhmTWR57GissgGAsKtAjELfYCL5oiDIz7SJ5ff9IX7X1sQjZa1xUbrMJSp45s6rxLf677G55lY9Vw34uVjyv/NGotKH7szb/x3pqROJGq0GHtWU5gLH6a/51YeOEdNsKL+Ka8oms9wRq4kgpTPCR4G8Fgo5GdAAw+dvHj9+reOALjprq98pjPPa1991+qrWHLv3gX5xd49polJoiiwTEanx6M6ZEWHCQ6fS+K+UoGsWlkhzLhyOmjxlKf/8NfJvw7ef+NBAkAQqFWUCsC1y2G1Engq8xlwhBzf3UoAv4B6EITBCivvLTKz8a+ZdmFj4o2hXjZupCE2+NhJ0c6/O+SUsn+H+vqAGA4HjeplT22Q7LkrDXkEnEMjgqhSkC5iJK9gVPKI3oq+1lCD1thYJxUXu3gsYlvsczvfbj06eulXby9d6k4OPuywEql60Syxa08rXnjuIA60ZeB0iKxmgpPOXVSazS3PDS/7whtXO2yewsYvzr6ob9ga+c1v/vJ+YclD9zvzVjw18fNTNHsBtxx/Jcai+9+HKR+YEo0+1f5ReWuu/tnlmYOHDpw48czo2BlOLuTJn8I5XIB4mJ4xAGYQwizgupuIlplMdG5iXHi5FTABYP36ZmPLFoBT+/vJtBzOcVvLe46NPLJ3T5/9yIAqvh9uwQfvHEckokGi4JfM8PKJ08pHmo/RqxaseuXqW65d+PRNN8z5gMO1UuTMCQCEFTPR7dKLLnXq3ql2XRnWQAijUp42WlD87eW54x6sBYDaG569x0xWhGXZfSsAoLjR8XEj+xlcYDGAIOz5Mwyua6KSGjDBNXBDganFGRUtswTJgep4zyPtwL+cTDzMcBgxf339NeNne8XXQs33lOQLj2cVWDNRu3CgLUnahzTYKYeVADkTJigDw7r6nQdvfDueymQJyNJHn3jp8CkJDIza1WFV2hfslQgkKLEoNP3oQ7Hun8cKxgcbKKW3AHCqg6PNqe7uZ0TR/hvAL2BgvYyPuWX2dAIWAwgDBTXjCJgdRrwAhHHoahzZ1DA1DV1hmigxQ50CANEoKAADAAmFw2myFeAcP3/uW7OuK6+pWjb94kKzv/1NwW4hmFjpIZwKQpHPfOUXP35+N4Blp/5tIFAvbhiYQprXr9cpSWzT1JYfZFqgi4Jb5GJqT6z/3/8EAEyV1nmn5S6tWLlXal4/910A734chc9LwOLFixEOAvV1EkzRhsEeGyIDJmIRBkIYAwg19aRBNfYQALS2rtWBIABwzkG2rK0X3svq9oJcw1VQnMeH+xQcbk8wn9tGVywr7dy7fejmedf42iomvbyD8V6tMOetlddcs0EZyy3Glp3R/p/uBPBhi7uw7OHNBSXfkHLrprxhF9R5qSEl5jqa4mP+vpacnPA+0Wbp0wjYcrIo2NJtQFE0RNs0ZAZPmGqinVMqiKLVa9Hl1Asd4W8cB/B3E8761XXi6vVh/Xu31t4+BPslubGYdrx92CJYJTZ1oguaYk0Fmo7tmV8fnhCJDiw0VQW9vY+SYHDDf8vSArS2FmKrfTwv10Zchqq/0+/u/dN4iU3WDUnt2Hn3/A6/H8CST6z4WQk4hYFOA1o8qWcGj5jgGZvF4YWhpNq5kb2/Y9NDr4Ok6Wmhpm5sneAwslZPYS5gd6P7+CEMxk2UyAyqYPf5/RA6O/siTB2+ytQy5tDQMeX0/x5kra3QAOAEMArgXwGgpXn9IQCHAACh0Om3fSoEbBk7pLt7CBFEiRsjEjO0tzkRtKya/lr/tu/2gEROW1sHAqD9/c2mIHw+x+nu/P6cxTN4YZXPcnRnM7hmgogUQ72xzaEQTELmZjnHGxcsZX1ARDhoAJz4/SF6pkzwk+I0AsKFY1VhefRwVhCt9+q6nuzc9MB/fijLWJ5wmgBrp/kJaQiZT3yz/7szJzgs7nHlLNl3gIxGVeR5JVJd4cGMWbkPAcD3vgca3LKZIrwFQPD8+/7Dp64hPBTCp6Y8cCYLOMmurgufb9+4Jg4A8DcJdZ2jtLm50QiHyWkCNzX5BdIQMn/xi5W+ciV+W0n1NOYu8qHtg0EMDigYV2iDt9iLQwNiLoDhMaWWGAgEKBCgOM+7Af9InHUO6A5/PV5fHxDT6fGkOdSgNwMmsPrvrgnU14tr7y7kpCFkvr377jx6pOstOxV9BTPmcy3RLSSHEoglDYwrd6GiwoMEd2RP3gkgiP9JxU/hXIshEg4HjbOuBv1+IRgOG6QhZG7b9rUqcrhjo2U4Mqd45kzYfRYhM9yG+IAM1eCgIofbKaF5v1QOAFuOT7AAATrtc2+9XnvNi68BYyvPf4B+58W5SmJnDC+BAOi0aX6xoSGk3bn8ohVTpzpujLx39Ms5PIOcyVVm0dRyITPYAj2RxkhEQVplMDXG9XiauHIn/gbA1K2/u0MBANG68y1T1e0AUFXlY83Nn76C58PHSpzXNdZJq9ePFR/XrF75ueVzxRdT7d20oytuzr6kglbVTCVaRgZDBgwyjjQP4vW3ejG+0MpuXFZGLTMXH7ntkfg8ZXD8lxKpmJGJdLcoxss7gCYB+PRm9o+DCyqJNfn9QlOTX1i9vlmvq7u0/J0/P9h466q8kJAdpfGBtHHdDRXCJTfeSvJrFyOvuhCamsWbTUfxzvYhUElAJG7S8K4+3Zbqn3rf58et7h6aMMtmg+kqKvOMVZs+nZj+SfCxLODfv3HFk04Lu6Zmct7kka5us7MtQWdflEdmLp8GKbcWhhwDQRKj7cex/c/t2Pr+CDvQb5hJjeOSagupmpBL5y6d17rutXkPb3h5zQbw/8s07lPAecvijY11Uk3x+FUTCtTV2kBi+eYdffjDC81arsdqmVhiZ919Mve1Z6GxA5QzA6IxikR/ksdlcE5FSiwSdRCG6mIbJK6aRmJ0ekP9LreN+oXaSC0Jhi8gD/gH4rwusH59swFCJxXk0K2tByN3R+PGazUVuZYrLinHrPrZ1DvzctoWLabvfaAbG9/p0zdui+tv7EnhUL9OE5pwUFbU+3Ut+8Bwim+2CZTJsCNBq54JhUImFn+8dwz/EfgEfYF68d4bIpU1k8r1iGEPlE6smcetbhPK6EybkIQyHMHhXQe0PUcTtxyPaJuZ1XGjQPmCEp9l2aTxzvKKMvvBgqkLqkVrQc3Xvh48zjknhFx4BefTxgURsK6xTqqrG3vd9VQU+O9Yc9O8b5VVl+Y4DBn9R9rC//bnjjcJAWpqai2tra1GZUnl9bJJpw4Odnw/+MCqb7q8+bVqNvPz6jl836FDtfx8b4r+bwIJADQQAA0EApTzsZ8zXPfRcx8SHQjUiwAQ+Pry3Me+5S8HAM7/Ie8w/79FY2OdtG5do7RuXaPk90M4wyVCXV2dBADrGhv/R7K+/1XgHOR/w5P/L7dx8JMrdMHOAAAAAElFTkSuQmCC">
+<title>L-1グランプリ 管理画面</title>
+<style>
+  :root {
+    --bg: #10151f; --panel: #1a2233; --panel2: #232e45; --line: #2e3b57;
+    --text: #e8edf7; --muted: #93a1bd; --accent: #f5b301; --add: #3ddc84; --deduct: #ff5d6c;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif; background: var(--bg); color: var(--text); }
+  .wrap { max-width: none; margin: 0; padding: 16px 20px; }
+  h1 { font-size: 20px; margin: 8px 0 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  select, input, textarea { background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; width: 100%; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+  .btn { background: var(--accent); color: #1a1a1a; border: none; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+  .btn.gray { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+  .btn.red { background: var(--deduct); color: #fff; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .tabs { display: flex; gap: 6px; margin: 12px 0; flex-wrap: wrap; }
+  .tabs button { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-size: 13px; }
+  .tabs button.active { background: var(--accent); color: #1a1a1a; border-color: var(--accent); font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+  th { color: var(--muted); font-size: 11px; font-weight: 600; }
+  .add { color: var(--add); font-weight: 700; }
+  .deduct { color: var(--deduct); font-weight: 700; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .msg { border-radius: 8px; padding: 9px 12px; font-size: 13px; margin: 10px 0; display: none; white-space: pre-wrap; }
+  .msg.okmsg { background: rgba(61,220,132,.12); color: var(--add); display: block; }
+  .msg.ngmsg { background: rgba(255,93,108,.12); color: var(--deduct); display: block; }
+  .hidden { display: none !important; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 160px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; background: var(--panel2); color: var(--muted); }
+  .badge.on { background: rgba(61,220,132,.15); color: var(--add); }
+  td input, td select { min-width: 70px; }
+  /* 日本語が1文字ずつ縦積みになるのを防ぐ（文節内で改行しない） */
+  td.col-rule { min-width: 210px; word-break: keep-all; }
+  td.col-name { min-width: 80px; word-break: keep-all; }
+  td.col-note { max-width: 360px; }
+  /* 列が多い表は横スクロールで逃がす（縦積みさせない） */
+  #reqBody, #evBody, #indBody, #admBody, #aplBody, #memBody { overflow-x: auto; }
+  .voided { opacity: .45; text-decoration: line-through; }
+  .rank1 { color: var(--accent); font-weight: 800; }
+  .pwwrap { position: relative; }
+  .pwwrap input { width: 100%; box-sizing: border-box; padding-right: 40px; }
+  .pwwrap .eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 18px; line-height: 1; padding: 4px; opacity: .8; }
+  .pwwrap .eye:hover { opacity: 1; }
+  .pwwrap .eye { display:flex; align-items:center; }
+  .pwwrap .eye svg { width:22px; height:22px; display:block; }
+</style>
 </head>
+<body>
+<div class="wrap">
+  <h1>L-1グランプリ 管理画面</h1>
 
-<body data-theme="deep">
-  <div class="bg">
-    <div class="bg-soft"></div>
-    <div class="bg-geo">
-      <span class="shape" style="width:120px;height:120px;background:#bcd2f7;left:6%;top:64%"></span>
-      <span class="shape" style="width:54px;height:54px;background:#f7c873;left:3%;top:78%"></span>
-      <span class="bar"
-        style="width:340px;background:linear-gradient(90deg,#1e40af,#7aa2f0);right:-50px;top:10%"></span>
-      <span class="bar"
-        style="width:260px;background:linear-gradient(90deg,#f59e0b,#f7c873);right:-30px;top:70%"></span>
-    </div>
-    <div class="bg-deep">
-      <svg width="100%" height="100%" viewBox="0 0 1440 900" preserveAspectRatio="none"
-        style="position:absolute;inset:0">
-        <path d="M0,760 C420,600 980,940 1440,640 L1440,900 L0,900 Z" fill="rgba(230,181,60,.16)" />
-        <path d="M0,810 C460,690 1000,980 1440,720" fill="none" stroke="rgba(245,158,11,.5)" stroke-width="6" />
-      </svg>
-    </div>
+  <!-- ログイン -->
+  <div id="loginCard" class="card">
+    <h2>管理者ログイン</h2>
+    <label for="lgName">お名前</label>
+    <select id="lgName"><option value="">氏名を選択</option></select>
+    <label for="lgPass">パスワード</label>
+    <div class="pwwrap"><input id="lgPass" type="password" autocomplete="current-password"><button type="button" class="eye" id="lgEye" aria-label="パスワード表示切替"></button></div>
+    <div style="margin-top:12px"><button class="btn" id="lgBtn">ログイン</button></div>
+    <div id="lgMsg" class="msg"></div>
+    <div class="muted" style="margin-top:10px">初期パスワードは運営から共有されたものを使用し、初回ログイン時に必ず変更してください。</div>
   </div>
 
-  <header>
-    <div class="brand"><b>ChallengeBoard</b></div>
-    <div class="themer" id="themer">
-      <button data-t="soft">ソフトグラデ</button>
-      <button data-t="geo">幾何学ポップ</button>
-      <button data-t="deep">ディープブルー</button>
-    </div>
-  </header>
-
-  <div class="card">
-    <h1>ChallengeBoard 管理画面</h1>
-    <p class="lead">案件名・案件概要と掲載期間を入力して登録すると、ChallengeBoard画面に表示されます。<br>掲載期間を過ぎると自動的に削除されます。</p>
-    <label for="ttl">案件名</label>
-    <input id="ttl" type="text" placeholder="例）データ基盤エンジニア（dbt移行）" autocomplete="off" />
-    <p class="hint">応募通知と一覧に表示されます。</p>
-
-    <label for="ov" style="margin-top:24px">案件概要</label>
-    <textarea id="ov" placeholder="単価情報は削除してください。"></textarea>
-    <div class="count"><span id="cnt">0</span> 文字</div>
-
-    <label for="reg" style="margin-top:24px">担当者</label>
-    <input id="reg" type="text" placeholder="例）山田 太郎" autocomplete="off" />
-    <p class="hint">通知メッセージと ChallengeBoard 画面に表示されます。</p>
-
-    <label for="days" style="margin-top:24px">掲載期間（日数）</label>
-    <input id="days" type="number" min="1" step="1" value="7" />
-    <p class="hint">掲載期間の日数です。</p>
-
-    <button class="submit" id="submit">登録する</button>
+  <!-- 初回パスワード再設定（強制） -->
+  <div id="resetCard" class="card hidden">
+    <h2>パスワードの再設定</h2>
+    <div class="muted" style="margin-bottom:8px">初回ログインのため、新しいパスワードを設定してください（8文字以上）。</div>
+    <label for="npw1">新しいパスワード</label>
+    <div class="pwwrap"><input id="npw1" type="password" autocomplete="new-password"><button type="button" class="eye" id="npw1Eye" aria-label="パスワード表示切替"></button></div>
+    <label for="npw2">新しいパスワード（確認）</label>
+    <div class="pwwrap"><input id="npw2" type="password" autocomplete="new-password"><button type="button" class="eye" id="npw2Eye" aria-label="パスワード表示切替"></button></div>
+    <div style="margin-top:12px"><button class="btn" id="npwBtn">パスワードを設定</button></div>
+    <div id="npwMsg" class="msg"></div>
   </div>
 
-  <!-- 登録中の案件 -->
-  <div class="card">
-    <h2>登録中の案件</h2>
-    <p class="list-sub">いま ChallengeBoard 画面に表示されている案件です。編集・削除できます。</p>
-    <div id="caseList">
-      <div class="list-empty">読み込み中…</div>
-    </div>
-  </div>
-
-  <!-- 単価情報の確認ダイアログ（登録・更新で共用） -->
-  <div class="ov top" id="confirm">
-    <div class="dialog">
-      <div class="ic">!</div>
-      <h2>単価情報を削除しましたか？</h2>
-      <p>従業員に表示される内容です。概要に単価・金額の記載が残っていないか、もう一度ご確認ください。</p>
-      <div class="row">
-        <button class="btn btn-back" id="back">戻る</button>
-        <button class="btn btn-ok" id="confirmOk">削除しました</button>
+  <!-- 管理UI -->
+  <div id="adminUI" class="hidden">
+    <div class="row" style="align-items:center; justify-content:space-between">
+      <div class="muted" id="whoami"></div>
+      <div style="display:flex; gap:8px">
+        <a class="btn sm" id="dashLink" href="./index.html" style="text-decoration:none">ダッシュボード</a>
+        <button class="btn gray sm" id="logoutBtn">ログアウト</button>
       </div>
     </div>
-  </div>
 
-  <!-- 編集モーダル -->
-  <div class="ov" id="editModal">
-    <div class="dialog wide">
-      <h2>案件を編集</h2>
-      <p>内容を修正して更新できます。単価情報が残っていないかご確認ください。</p>
-      <label for="eTtl" style="margin-top:16px">案件名</label>
-      <input id="eTtl" type="text" placeholder="例）データ基盤エンジニア（dbt移行）" autocomplete="off" />
-      <label for="eOv" style="margin-top:16px">案件概要</label>
-      <textarea id="eOv"></textarea>
-      <label for="eReg" style="margin-top:16px">担当者</label>
-      <input id="eReg" type="text" placeholder="例）山田 太郎" autocomplete="off" />
-      <label for="eDays" style="margin-top:16px">掲載期間（日数）</label>
-      <input id="eDays" type="number" min="1" step="1" value="7" />
-      <div class="row">
-        <button class="btn btn-back" id="eClose">閉じる</button>
-        <button class="btn btn-ok" id="eUpdate">更新する</button>
-      </div>
+    <div class="tabs">
+      <button data-tab="tabReq" class="active">申請承認 <span id="pendingCount" class="badge"></span></button>
+      <button data-tab="tabDirect">直接登録</button>
+      <button data-tab="tabEvents">申請履歴</button>
+      <button data-tab="tabIndividual" id="tabIndividualBtn" class="hidden">個人成績</button>
+      <button data-tab="tabMaster">マスタ</button>
+      <button data-tab="tabAdmins" id="tabAdminsBtn">管理者</button>
+      <button data-tab="tabApplicants">申請者</button>
+      <button data-tab="tabMembers">メンバー</button>
     </div>
-  </div>
+    <div id="gMsg" class="msg"></div>
 
-  <!-- 削除確認ダイアログ -->
-  <div class="ov top" id="delConfirm">
-    <div class="dialog">
-      <div class="ic danger">×</div>
-      <h2>この案件を削除しますか？</h2>
-      <p>削除すると ChallengeBoard 画面から消え、この案件への応募情報も一緒に削除されます。元に戻せません。</p>
+    <!-- 申請承認 -->
+    <section id="tabReq" class="card">
+      <h2>承認待ちの申請</h2>
+      <div class="muted">承認するとイベントが登録され、ダッシュボードへ自動反映されます。</div>
+      <div id="reqBody" style="margin-top:10px"></div>
+    </section>
+
+    <!-- 直接登録 -->
+    <section id="tabDirect" class="card hidden">
+      <h2>直接ポイント登録（承認不要・即時反映）</h2>
       <div class="row">
-        <button class="btn btn-back" id="delBack">戻る</button>
-        <button class="btn btn-del" id="delOk">削除する</button>
+        <div><label>Division</label><select id="dcDivision"></select></div>
+        <div><label>項目</label><select id="dcRule"></select></div>
       </div>
-    </div>
+      <div class="row">
+        <div id="dcPointsWrap" class="hidden"><label>ポイント（不定期mission）</label><input id="dcPoints" type="number" step="1"></div>
+        <div><label>発生日</label><input id="dcDate" type="date"></div>
+      </div>
+      <label>ポイント獲得者名（個人成績に集計されます）</label>
+      <select id="dcEarnerSel" class="hidden"><option value="">選択してください</option></select>
+      <input id="dcEarner" type="text" maxlength="100" placeholder="例: 山田 太郎">
+      <label>理由・詳細（管理者のみ閲覧）</label>
+      <textarea id="dcNote" rows="2" maxlength="2000"></textarea>
+      <div style="margin-top:12px"><button class="btn" id="dcSubmit">登録する</button></div>
+      <div id="dcMsg" class="msg"></div>
+    </section>
+
+    <!-- 申請履歴 -->
+    <section id="tabEvents" class="card hidden">
+      <h2>申請履歴</h2>
+      <div id="evBody" style="margin-top:10px"></div>
+    </section>
+
+    <!-- 個人成績 -->
+    <section id="tabIndividual" class="card hidden">
+      <h2>個人成績ランキング</h2>
+      <div class="muted" style="margin-bottom:8px">開催中シーズンが属する<b>今期のみ</b>を対象に、獲得者名で集計してランキング表示します。期が変わるとリセットされます。</div>
+      <div id="indBody" style="margin-top:12px"></div>
+    </section>
+
+    <!-- マスタ -->
+    <section id="tabMaster" class="card hidden">
+      <h2>Divisionマスタ</h2>
+      <div id="divBody"></div>
+      <div class="row" style="margin-top:10px; align-items:flex-end">
+        <div><label>新規Division名</label><input id="newDivName" type="text" maxlength="50"></div>
+        <div style="flex:0"><button class="btn sm" id="newDivBtn">追加</button></div>
+      </div>
+      <h2 style="margin-top:20px">判定基準マスタ</h2>
+      <div class="muted">ポイント変更は以後の登録に適用されます（過去のイベントは変わりません）。</div>
+      <div id="ruleBody" style="margin-top:8px"></div>
+
+      <h2 style="margin-top:20px">判定基準の新規追加</h2>
+      <div class="row">
+        <div style="flex:0.5"><label>区分</label><select id="nrKind"><option value="add">加点</option><option value="deduct">減点</option></select></div>
+        <div><label>対象指標</label><input id="nrCategory" type="text" maxlength="30" placeholder="例: スキルアップ"></div>
+      </div>
+      <div class="row">
+        <div><label>内容</label><input id="nrLabel" type="text" maxlength="120" placeholder="例: 〇〇資格の取得"></div>
+        <div style="flex:0.4"><label>単位</label><input id="nrUnit" type="text" maxlength="10" value="回"></div>
+      </div>
+      <div class="row" style="align-items:center">
+        <div><label style="margin-top:0"><input type="checkbox" id="nrVariable" style="width:auto; vertical-align:middle"> 可変ポイント（不定期mission等・都度入力）</label></div>
+        <div id="nrPointsWrap"><label>ポイント（加点は正・減点は負の整数）</label><input id="nrPoints" type="number" step="1" placeholder="例: 100 / -100"></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn" id="nrBtn">判定基準を追加</button></div>
+      <div id="nrMsg" class="msg"></div>
+    </section>
+
+    <!-- 管理者 -->
+    <section id="tabAdmins" class="card hidden">
+      <h2>管理者一覧</h2>
+      <div id="admBody"></div>
+      <div class="row" style="margin-top:10px; align-items:flex-end">
+        <div><label>追加する管理者の氏名</label><select id="newAdmName" style="min-width:180px"></select></div>
+        <div style="flex:0"><button class="btn sm" id="newAdmBtn">追加</button></div>
+      </div>
+    </section>
+
+    <!-- 申請者 -->
+    <section id="tabApplicants" class="card hidden">
+      <h2>申請者（ポイント申請できる人）</h2>
+      <div class="muted" style="margin-bottom:8px">ここで申請権限を付与したメンバーだけがポイント申請ページを開いて申請できます（管理者は自動的に申請可）。氏名は「メンバー名簿」から選べます。</div>
+      <div id="aplBody"></div>
+      <div class="row" style="margin-top:10px; align-items:flex-end">
+        <div><label>申請権限を付与する氏名</label><select id="newAplName" style="min-width:180px"></select></div>
+        <div style="flex:0"><button class="btn sm" id="newAplBtn">追加</button></div>
+      </div>
+    </section>
+
+    <!-- メンバー名簿 -->
+    <section id="tabMembers" class="card hidden">
+      <div class="row" style="justify-content:space-between; align-items:center">
+        <h2 style="margin:0">メンバー名簿</h2>
+      </div>
+      <div id="memBody"></div>
+      <div class="row" style="margin-top:10px; align-items:flex-end">
+        <div><label>氏名</label><input id="newMemName" type="text" placeholder="山田 太郎"></div>
+        <div><label>所属Division（任意）</label><select id="newMemDiv"></select></div>
+        <div style="flex:0"><button class="btn sm" id="newMemBtn">追加</button></div>
+      </div>
+    </section>
   </div>
+</div>
 
-  <div class="toast" id="toast"></div>
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import {
+  calcStandings, calcStandingsCarry, calcAnnualStandings, validateRequestInput, groupRules,
+  formatPoints, seasonForDate, seasonActivationPlan, approvalAction,
+  filterNameItems, namesForDivision,
+} from './l1-core.js';
 
-  <script>
-    // ====== 設定（デプロイ前にここだけ書き換え） ======
-    const SUPABASE_URL = "https://yklwkovbphqmiucnmcmu.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_V34btW_6HTEdovDYrtiDUw_FDDb93KW";
-    // ===============================================
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+const todayISO = () => new Date().toLocaleDateString('sv-SE');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const ovInput = document.getElementById("ov");
-    const cnt = document.getElementById("cnt");
-    const submit = document.getElementById("submit");
-    const confirmEl = document.getElementById("confirm");
-    const confirmOk = document.getElementById("confirmOk");
-    const editModal = document.getElementById("editModal");
-    const eOv = document.getElementById("eOv");
-    const eDays = document.getElementById("eDays");
-    const eUpdate = document.getElementById("eUpdate");
-    const delConfirm = document.getElementById("delConfirm");
-    const delOk = document.getElementById("delOk");
-    const caseList = document.getElementById("caseList");
+// 氏名セレクトにリアルタイム検索を付ける（1文字入力ごとに候補を更新）
+// getItems() は [{value,label}] または 文字列配列 を返す関数
+function attachSearchSelect(sel, getItems, opts = {}) {
+  if (!sel) return null;
+  const prev = sel.previousElementSibling;
+  let box;
+  if (prev && prev.dataset && prev.dataset.nsearch === '1') {
+    box = prev;
+  } else {
+    box = document.createElement('input');
+    box.type = 'search';
+    box.dataset.nsearch = '1';
+    box.autocomplete = 'off';
+    box.placeholder = opts.placeholder || '氏名で検索（1文字から絞り込み）';
+    box.style.marginBottom = '6px';
+    sel.parentNode.insertBefore(box, sel);
+  }
+  const emptyLabel = opts.emptyLabel ?? '選択してください';
+  const render = () => {
+    const hits = filterNameItems(getItems(), box.value);
+    const want = sel.value || sel.dataset.selValue || '';
+    const head = hits.length
+      ? `<option value="">${esc(emptyLabel)}</option>`
+      : `<option value="">${esc(box.value ? '該当する氏名がありません' : (opts.noneLabel || '候補がありません'))}</option>`;
+    sel.innerHTML = head + hits.map(it => `<option value="${esc(it.value)}">${esc(it.label)}</option>`).join('');
+    if (want && hits.some(it => String(it.value) === String(want))) sel.value = want;
+  };
+  box.oninput = render;   // 1文字ごとにリアルタイム更新
+  render();
+  return render;
+}
 
-    let confirmAction = null;   // 単価確認OK時に実行する処理（登録 or 更新）
-    let editingId = null;       // 編集中の案件ID
-    let delId = null;           // 削除対象の案件ID
-    let cachedCases = [];
+let state = { divisions: [], seasons: [], rules: [], requests: [], events: [], admins: [], user: null };
+let adminLoginNames = [];   // 管理者ログインの氏名候補（検索用に保持）
 
-    // テーマ
-    const themer = document.getElementById("themer");
-    function setTheme(t) {
-      document.body.dataset.theme = t;
-      [...themer.children].forEach(b => b.classList.toggle("on", b.dataset.t === t));
-      const u = new URL(location.href); u.searchParams.set("theme", t); history.replaceState(null, "", u);
+function flash(el, okFlag, text) {
+  el.className = 'msg ' + (okFlag ? 'okmsg' : 'ngmsg');
+  el.textContent = text;
+  if (okFlag) setTimeout(() => { el.className = 'msg'; el.textContent = ''; }, 4000);
+}
+const gmsg = (okFlag, text) => flash($('gMsg'), okFlag, text);
+
+// ---------- 認証（氏名＋パスワード / 内部は Supabase Auth） ----------
+async function populateAdminNames() {
+  try {
+    const { data } = await sb.rpc('l1_admin_names');
+    adminLoginNames = Array.isArray(data) ? data : [];
+    // Divisionで絞り込めない箇所のためリアルタイム検索を付与
+    attachSearchSelect($('lgName'), () => adminLoginNames,
+      { emptyLabel: '氏名を選択', noneLabel: '氏名を選択', placeholder: '氏名で検索' });
+  } catch { /* 取得失敗時は空 */ }
+}
+async function login() {
+  const name = $('lgName').value.trim();
+  if (!name) { flash($('lgMsg'), false, 'お名前を選択してください'); return; }
+  const pass = $('lgPass').value;
+  if (!pass) { flash($('lgMsg'), false, 'パスワードを入力してください'); return; }
+  let email = null;
+  try { const { data } = await sb.rpc('l1_admin_email_by_name', { p_name: name }); email = data; } catch {}
+  if (!email) { flash($('lgMsg'), false, 'この氏名の管理者アカウントが見つかりません。'); return; }
+  state._loginName = name;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { flash($('lgMsg'), false, 'ログインに失敗しました。パスワードをご確認ください。'); return; }
+  await afterAuth();
+}
+async function afterAuth() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+  const { data: isAdmin, error } = await sb.rpc('l1_is_admin');
+  if (error || !isAdmin) {
+    flash($('lgMsg'), false, 'このアカウントは管理者に登録されていません。');
+    await sb.auth.signOut();
+    return;
+  }
+  state.user = user;
+  // 初回ログインはパスワード再設定を強制
+  let mustReset = false;
+  try { const { data } = await sb.rpc('l1_my_member_must_reset'); mustReset = !!data; } catch { mustReset = false; }
+  if (mustReset) {
+    $('loginCard').classList.add('hidden');
+    $('resetCard').classList.remove('hidden');
+    return;
+  }
+  await enterAdmin();
+}
+async function enterAdmin() {
+  $('loginCard').classList.add('hidden');
+  $('resetCard').classList.add('hidden');
+  $('adminUI').classList.remove('hidden');
+  try { const { data } = await sb.rpc('l1_can_view_individual'); state.canIndividual = !!data; } catch { state.canIndividual = false; }
+  $('tabIndividualBtn').classList.toggle('hidden', !state.canIndividual);
+  $('tabAdminsBtn').classList.toggle('hidden', !state.canIndividual);
+  await reloadAll();
+  const me = (state.admins || []).find(a => a.user_id === state.user?.id);
+  $('whoami').textContent = 'ログイン中: ' + (me?.lark_name || state._loginName || state.user?.email || '');
+}
+async function submitNewPassword() {
+  const p1 = $('npw1').value, p2 = $('npw2').value;
+  if ((p1 || '').length < 8) { flash($('npwMsg'), false, 'パスワードは8文字以上で設定してください'); return; }
+  if (p1 !== p2) { flash($('npwMsg'), false, '確認用パスワードが一致しません'); return; }
+  const { error } = await sb.auth.updateUser({ password: p1 });
+  if (error) { flash($('npwMsg'), false, '設定に失敗しました: ' + error.message); return; }
+  try { await sb.rpc('l1_clear_member_must_reset'); } catch {}
+  $('npw1').value = ''; $('npw2').value = '';
+  flash($('npwMsg'), true, 'パスワードを更新しました');
+  await enterAdmin();
+}
+function eyeIcon(visible){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+'<path d="M2 12S5.5 5.5 12 5.5 22 12 22 12 18.5 18.5 12 18.5 2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>'+(visible?'<line x1="4" y1="4" x2="20" y2="20"/>':'')+'</svg>'; }
+function initEye(btnId, inputId){ const b=$(btnId); if(!b) return; b.innerHTML=eyeIcon(false); b.addEventListener('click', ()=>{ const el=$(inputId); if(!el) return; const willShow=el.type==='password'; el.type=willShow?'text':'password'; b.innerHTML=eyeIcon(willShow); }); }
+async function logout() { await sb.auth.signOut(); location.reload(); }
+
+// ---------- データ取得 ----------
+async function reloadAll() {
+  const [dv, ss, rl, rq, ev, ad, apl, mem] = await Promise.all([
+    sb.from('l1_divisions').select('*').order('display_order'),
+    sb.from('l1_seasons').select('*').order('starts_on'),
+    sb.from('l1_rules').select('*').order('display_order'),
+    sb.from('l1_requests').select('*').in('status', ['pending', 'pending_final']).order('created_at'),
+    sb.from('l1_events_full').select('*').order('occurred_on', { ascending: false }).limit(2000),
+    sb.from('l1_admins').select('*').order('created_at'),
+    sb.from('l1_applicants').select('*').order('created_at'),
+    sb.from('l1_members').select('*').order('name'),
+  ]);
+  for (const r of [dv, ss, rl, rq, ev, ad]) if (r.error) { gmsg(false, '読み込みエラー: ' + r.error.message); return; }
+  state.divisions = dv.data; state.seasons = ss.data; state.rules = rl.data;
+  state.requests = rq.data; state.events = ev.data; state.admins = ad.data;
+  state.applicants = (apl && !apl.error) ? apl.data : [];
+  state.members = (mem && !mem.error) ? mem.data : [];
+  // 個人成績はサーバー側で集計する（l1_28のRPC l1_individual_totals）。
+  // l1_events_full に earner_name 列が無く、l1_events の直読みはRLSで拒否されるため、
+  // クライアント集計はできない。失敗は沈黙させず画面に理由を出す。
+  state.individual = null;
+  state.individualError = null;
+  if (state.canIndividual) {
+    const { data: ind, error: indErr } = await sb.rpc('l1_individual_totals');
+    if (indErr) state.individualError = indErr.message || String(indErr);
+    else state.individual = Array.isArray(ind) ? ind : [];
+  }
+  // 承認進捗（全通常管理者の承認が必須。l1_25で追加したRPC）
+  state.progress = new Map();
+  state.requiredApprovals = 0;
+  state.progressError = null;
+  try {
+    const { data: pg, error: pgErr } = await sb.rpc('l1_request_progress');
+    if (pgErr) throw pgErr;
+    if (Array.isArray(pg) && pg.length) {
+      for (const row of pg) state.progress.set(row.request_id, row);
+      state.requiredApprovals = Number(pg[0].required) || 0;
+    } else {
+      const { data: rc, error: rcErr } = await sb.rpc('l1_regular_admin_count');
+      if (rcErr) throw rcErr;
+      state.requiredApprovals = Number(rc) || 0;
     }
-    themer.addEventListener("click", e => { if (e.target.dataset.t) setTheme(e.target.dataset.t); });
-    setTheme(new URL(location.href).searchParams.get("theme") || "deep");
+  } catch (e) {
+    // 承認可否に直結するため沈黙させない（0人と誤表示すると原因が分からなくなる）
+    state.progressError = e?.message || String(e);
+  }
+  renderAll();
+}
+function renderAll() {
+  renderRequests(); renderDirectForm(); renderEvents();
+  renderMasters(); renderAdmins(); renderApplicants(); renderMembers();
+  if (state.canIndividual) renderIndividual();
+}
+const dName = id => state.divisions.find(d => d.id === id)?.name ?? '(不明)';
+const rOf = id => state.rules.find(r => r.id === id);
 
-    ovInput.addEventListener("input", () => cnt.textContent = ovInput.value.length);
-
-    const esc = s => String(s ?? "").replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-    const firstLine = s => (s.split(/\r?\n/).find(l => l.trim()) || "案件").slice(0, 80);
-    const md = d => `${d.getMonth() + 1}/${d.getDate()}`;
-    const fmtPeriod = (createdAt, days) => {
-      const start = new Date(createdAt);
-      const end = new Date(start.getTime() + (Number(days) || 7) * 24 * 60 * 60 * 1000);
-      return `${md(start)} 〜 ${md(end)}`;
-    };
-    function showToast(msg) {
-      const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 2800);
-    }
-
-    // ===== 登録 =====
-    submit.addEventListener("click", () => {
-      if (!document.getElementById("ttl").value.trim()) { showToast("案件名を入力してください"); document.getElementById("ttl").focus(); return; }
-      if (!ovInput.value.trim()) { showToast("案件概要を入力してください"); ovInput.focus(); return; }
-      confirmAction = registerCase;
-      confirmEl.classList.add("show");
-    });
-    async function registerCase() {
-      confirmOk.disabled = true;
-      const overview = ovInput.value.trim();
-      const registrant = document.getElementById("reg").value.trim();
-      const days = Math.max(1, parseInt(document.getElementById("days").value, 10) || 7);
-      const title = document.getElementById("ttl").value.trim();
-      const { error } = await sb.from("cases").insert({ overview, title, registrant, period_days: days });
-      confirmOk.disabled = false;
-      if (error) { showToast("登録に失敗しました：" + error.message); return; }
-      confirmEl.classList.remove("show");
-      ovInput.value = ""; cnt.textContent = "0"; document.getElementById("ttl").value = ""; document.getElementById("reg").value = ""; document.getElementById("days").value = "7";
-      showToast("案件を登録しました");
-      loadCases();
-    }
-
-    // ===== 単価確認ダイアログ共通 =====
-    confirmOk.onclick = () => { if (confirmAction) confirmAction(); };
-    document.getElementById("back").onclick = () => confirmEl.classList.remove("show");
-    confirmEl.addEventListener("click", e => { if (e.target === confirmEl) confirmEl.classList.remove("show"); });
-
-    // ===== 一覧の読み込み =====
-    async function loadCases() {
-      const guard = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: cs, error } = await sb.from("cases")
-        .select("id, overview, title, created_at, period_days, registrant")
-        .gt("created_at", guard).order("created_at", { ascending: false });
-      if (error) { caseList.innerHTML = `<div class="list-empty">読み込みに失敗しました：${esc(error.message)}</div>`; return; }
-      const now = Date.now();
-      const list = (cs || []).filter(c => new Date(c.created_at).getTime() + (Number(c.period_days) || 7) * 86400000 > now);
-      cachedCases = list;
-
-      let counts = {};
-      const ids = list.map(c => c.id);
-      if (ids.length) {
-        const { data: ap } = await sb.from("applications").select("case_id").in("case_id", ids);
-        (ap || []).forEach(a => { counts[a.case_id] = (counts[a.case_id] || 0) + 1; });
+// ---------- 申請承認（二段階：通常承認→特別承認） ----------
+function renderRequests() {
+  $('pendingCount').textContent = state.requests.length;
+  if (state.requests.length === 0) { $('reqBody').innerHTML = '<div class="muted">承認待ちの申請はありません。</div>'; return; }
+  const sp = !!state.canIndividual; // 特別管理者か
+  const prog = state.progress instanceof Map ? state.progress : new Map();
+  const req0 = Number(state.requiredApprovals) || 0;
+  // 承認できない原因を最優先で表示する（0人と誤表示させない）
+  const banner = state.progressError
+    ? `<div class="msg ngmsg" style="display:block">承認機能を読み込めませんでした: ${esc(state.progressError)}`
+      + (/does not exist|schema cache|could not find/i.test(state.progressError)
+          ? '<br>l1_25_all_admin_approval.sql が未適用です。適用するまで承認できません。' : '')
+      + `</div>`
+    : (req0 === 0
+        ? `<div class="msg ngmsg" style="display:block">通常管理者が0名のため承認できません。管理者タブで通常管理者（個人成績の閲覧=なし）を登録してください。</div>`
+        : '');
+  $('reqBody').innerHTML = banner + `<table><thead><tr><th>状態</th><th>承認</th><th>申請日</th><th>発生日</th><th>Division</th><th>項目</th><th>pt</th><th>獲得者</th><th>申請者</th><th>詳細</th><th></th></tr></thead><tbody>` +
+    state.requests.map(q => {
+      const r = rOf(q.rule_id);
+      const variable = !!r?.is_variable;
+      const isFinal = q.status === 'pending_final';
+      const pr = prog.get(q.id) || {};
+      const approved = Number(pr.approved) || 0;
+      const required = Number(pr.required ?? req0) || 0;
+      const act = approvalAction({
+        status: q.status, isSpecial: sp, iApproved: !!pr.i_approved,
+        approved, required, isVariable: variable,
+      });
+      const statusBadge = isFinal ? '<span class="badge on">特別承認待ち</span>' : '<span class="badge">承認待ち</span>';
+      // 承認進捗（1次承認の達成状況）
+      const names = Array.isArray(pr.approver_names) ? pr.approver_names : [];
+      const progCell = isFinal
+        ? `<span class="badge on">1次完了</span>`
+        : `<span class="badge${approved >= required && required > 0 ? ' on' : ''}" title="${esc(names.join('・') || '承認者なし')}">${approved}/${required}</span>`;
+      let actions = '';
+      if (act.mode === 'approve' || act.mode === 'final') {
+        actions = `<button class="btn sm" data-approve="${q.id}">${esc(act.label)}</button>`;
+      } else if (act.mode === 'approved') {
+        actions = `<button class="btn sm gray" disabled>${esc(act.label)}</button>`;
       }
-      if (!list.length) { caseList.innerHTML = `<div class="list-empty">登録中の案件はありません。</div>`; return; }
-      caseList.innerHTML = list.map(c => {
-        const text = c.overview || "";
-        const n = counts[c.id] || 0;
-        return `<div class="item">
-      <div class="item-main">
-        <div class="item-ov"><b>${esc(c.title || "(案件名未設定)")}</b>${text ? "\n" + esc(text) : ""}</div>
-        <div class="item-meta">掲載期間：${fmtPeriod(c.created_at, c.period_days)}${c.registrant ? " ・ 担当者：" + esc(c.registrant) : ""} ・ 応募 ${n}件</div>
-      </div>
-      <div class="item-actions">
-        <button class="mini edit" data-id="${c.id}">編集</button>
-        <button class="mini del"  data-id="${c.id}">削除</button>
-      </div>
-    </div>`;
-      }).join("");
+      if (act.note) actions += `<span class="muted" style="font-size:12px">${esc(act.note)}</span>`;
+      if (act.canReject) actions += `<button class="btn sm red" data-reject="${q.id}">却下</button>`;
+      return `<tr>
+        <td style="white-space:nowrap">${statusBadge}</td>
+        <td style="text-align:center;white-space:nowrap">${progCell}</td>
+        <td class="muted" style="white-space:nowrap">${q.created_at ? esc(new Date(q.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })) : ''}</td>
+        <td>${esc(q.occurred_on)}</td>
+        <td>${esc(dName(q.division_id))}</td>
+        <td class="col-rule">${esc(r ? r.category + '｜' + r.label : '(不明)')}</td>
+        <td>${variable
+          ? (act.showPointsInput
+              ? `<input type="number" step="1" value="${q.points ?? ''}" id="qp-${q.id}" style="width:90px">`
+              : `<span class="muted">特別承認時に確定</span>`)
+          : `<span class="${(q.points ?? 0) >= 0 ? 'add' : 'deduct'}">${esc(formatPoints(q.points))}</span>`}</td>
+        <td class="col-name">${esc(q.earner_name ?? '')}</td>
+        <td class="col-name">${esc(q.requester_name)}</td>
+        <td class="muted col-note">${esc(q.note ?? '')}</td>
+        <td style="white-space:nowrap">${actions}</td>
+      </tr>`;
+    }).join('') + '</tbody></table>'
+    + `<div class="muted" style="margin-top:6px">通常管理者<b>全員（${req0}名）</b>の承認が揃うと「特別承認待ち」になり、特別管理者へ通知されます。特別管理者が承認するとダッシュボードへ反映されます。可変ポイントの金額は特別承認時に確定します。却下は管理者1名で成立します。</div>`;
+
+  $('reqBody').querySelectorAll('[data-approve]').forEach(b => b.addEventListener('click', () => review(b.dataset.approve, 'approve')));
+  $('reqBody').querySelectorAll('[data-reject]').forEach(b => b.addEventListener('click', () => review(b.dataset.reject, 'reject')));
+}
+async function review(id, action) {
+  const q = state.requests.find(x => x.id === id);
+  const r = rOf(q?.rule_id);
+  let p_points = null;
+  // 可変ポイントは特別承認（pending_final）の確定時のみ入力・必須
+  if (action === 'approve' && r?.is_variable && q?.status === 'pending_final') {
+    const raw = $(`qp-${id}`)?.value;
+    const v = parseInt(String(raw ?? '').trim(), 10);
+    if (!Number.isInteger(v) || v === 0) { gmsg(false, '可変ポイントを入力してください（0以外の整数）'); return; }
+    p_points = v;
+  }
+  const p_comment = action === 'reject' ? (prompt('却下理由（任意）') ?? null) : null;
+  const { error } = await sb.rpc('l1_review_request', { p_request_id: id, p_action: action, p_points, p_comment });
+  if (error) { gmsg(false, '処理に失敗: ' + error.message); return; }
+  const prevStatus = q?.status;
+  await reloadAll();
+  let msg;
+  if (action === 'reject') {
+    msg = '却下しました';
+  } else if (prevStatus === 'pending_final') {
+    msg = '承認しました（ダッシュボードへ反映されます）';
+  } else {
+    const after = state.requests.find(x => x.id === id);
+    if (!after) {
+      msg = '承認しました（ダッシュボードへ反映されます）';
+    } else if (after.status === 'pending_final') {
+      msg = '通常管理者全員の承認が揃いました（特別管理者へ通知しました）';
+    } else {
+      const pr = (state.progress instanceof Map ? state.progress.get(id) : null) || {};
+      const remain = Math.max(0, (Number(pr.required) || 0) - (Number(pr.approved) || 0));
+      msg = `1次承認しました（残り ${remain} 名の承認待ち）`;
     }
+  }
+  gmsg(true, msg);
+}
 
-    caseList.addEventListener("click", e => {
-      const ed = e.target.closest(".edit"); const dl = e.target.closest(".del");
-      if (ed) openEdit(ed.dataset.id);
-      if (dl) openDel(dl.dataset.id);
-    });
+// ---------- 直接登録 ----------
+function renderDirectForm() {
+  $('dcDivision').innerHTML = '<option value="">選択</option>' +
+    state.divisions.filter(d => d.is_active !== false && d.in_ranking !== false).map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
+  const g = groupRules(state.rules);
+  const opt = r => `<option value="${r.id}">${esc(r.category)}｜${esc(r.label)}${r.is_variable ? '（pt都度設定）' : `（${formatPoints(r.points)}L）`}</option>`;
+  $('dcRule').innerHTML = '<option value="">選択</option>' +
+    `<optgroup label="加点">${g.add.map(opt).join('')}</optgroup>` +
+    `<optgroup label="減点">${g.deduct.map(opt).join('')}</optgroup>`;
+  if (!$('dcDate').value) $('dcDate').value = todayISO();
 
-    // ===== 編集 =====
-    function openEdit(id) {
-      const c = cachedCases.find(x => x.id === id); if (!c) return;
-      editingId = id;
-      document.getElementById("eTtl").value = c.title || "";
-      eOv.value = c.overview || "";
-      document.getElementById("eReg").value = c.registrant || "";
-      eDays.value = Number(c.period_days) || 7;
-      editModal.classList.add("show");
-      setTimeout(() => eOv.focus(), 60);
+  populateDirectEarner();
+}
+
+// 獲得者プルダウン: 選択中のDivisionに所属するメンバーのみ表示
+// （Division未選択なら在籍メンバー全員。名簿が取れない場合はテキスト入力にフォールバック）
+function populateDirectEarner() {
+  const sel = $('dcEarnerSel'), txt = $('dcEarner');
+  if (!sel || !txt) return;
+  if (!(state.members || []).some(m => m.is_active !== false && m.name)) {
+    sel.classList.add('hidden'); txt.classList.remove('hidden'); return;
+  }
+  const divId = $('dcDivision') ? $('dcDivision').value : '';
+  const items = namesForDivision(state.members, divId);
+  const cur = sel.value;
+  const head = items.length
+    ? '<option value="">選択してください</option>'
+    : `<option value="">${divId ? 'このDivisionに在籍メンバーがいません' : '候補がありません'}</option>`;
+  sel.innerHTML = head + items.map(it => `<option value="${esc(it.value)}">${esc(it.label)}</option>`).join('');
+  if (cur && items.some(it => it.value === cur)) sel.value = cur;
+  sel.classList.remove('hidden'); txt.classList.add('hidden');
+}
+async function directSubmit() {
+  const rule = rOf($('dcRule').value) || null;
+  const input = { division_id: $('dcDivision').value, requester_name: '(管理者直接登録)', occurred_on: $('dcDate').value, note: $('dcNote').value, points: $('dcPoints').value };
+  const v = validateRequestInput(input, rule);
+  if (!v.ok) { flash($('dcMsg'), false, v.errors.join('\n')); return; }
+  const season = seasonForDate(state.seasons, input.occurred_on);
+  if (!season) { flash($('dcMsg'), false, '発生日をカバーするシーズンがありません。シーズンタブで追加してください。'); return; }
+  $('dcSubmit').disabled = true;
+  const earner = ($('dcEarnerSel') && !$('dcEarnerSel').classList.contains('hidden'))
+    ? $('dcEarnerSel').value.trim()
+    : $('dcEarner').value.trim();
+  const { error } = await sb.from('l1_events').insert({
+    season_id: season.id, division_id: input.division_id, rule_id: rule.id,
+    points: v.points, occurred_on: input.occurred_on, note: input.note || null,
+    earner_name: earner || null,
+  });
+  $('dcSubmit').disabled = false;
+  if (error) { flash($('dcMsg'), false, '登録に失敗: ' + error.message); return; }
+  flash($('dcMsg'), true, '登録しました（ダッシュボードへ即時反映）');
+  $('dcNote').value = ''; $('dcPoints').value = ''; $('dcEarner').value = ''; if ($('dcEarnerSel')) $('dcEarnerSel').value = '';
+  await reloadAll();
+}
+
+// ---------- 申請履歴・打消し ----------
+function seasonOptions(sel, selectedId) {
+  sel.innerHTML = state.seasons.map(s =>
+    `<option value="${s.id}" ${s.id === selectedId ? 'selected' : ''}>${esc(s.name)}${s.is_active ? '（開催中）' : ''}</option>`).join('');
+}
+function renderEvents() {
+  const rows = state.events;
+  if (rows.length === 0) { $('evBody').innerHTML = '<div class="muted">イベントはありません。</div>'; return; }
+  $('evBody').innerHTML = `<table><thead><tr><th>発生日時</th><th>Division</th><th>項目</th><th>pt</th><th>理由・詳細</th><th>由来</th><th></th></tr></thead><tbody>` +
+    rows.map(e => `
+      <tr class="${e.voided_at ? 'voided' : ''}">
+        <td class="muted" style="white-space:nowrap">${e.created_at ? esc(new Date(e.created_at).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })) : esc(e.occurred_on)}</td>
+        <td>${esc(e.division_name)}</td>
+        <td>${esc(e.category)}<span class="muted">｜${esc(e.label)}</span></td>
+        <td class="${e.points >= 0 ? 'add' : 'deduct'}">${esc(formatPoints(e.points))}</td>
+        <td class="muted" style="max-width:240px">${esc(e.note ?? '')}${e.voided_at ? `<br>【取消: ${esc(e.voided_reason ?? '')}】` : ''}</td>
+        <td class="muted" style="white-space:nowrap">${e.request_id ? '申請' : '直接'}</td>
+        <td>${e.voided_at ? '' : `<button class="btn sm red" data-void="${e.id}">打消し</button>`}</td>
+      </tr>`).join('') + '</tbody></table>';
+  $('evBody').querySelectorAll('[data-void]').forEach(b => b.addEventListener('click', () => voidEvent(b.dataset.void)));
+}
+async function voidEvent(id) {
+  const reason = prompt('打消し理由（必須）');
+  if (reason === null) return;
+  if (!reason.trim()) { gmsg(false, '打消し理由は必須です'); return; }
+  const { error } = await sb.rpc('l1_void_event', { p_event_id: id, p_reason: reason.trim() });
+  if (error) { gmsg(false, '打消しに失敗: ' + error.message); return; }
+  gmsg(true, '打消しました（集計から除外されます）');
+  await reloadAll();
+}
+
+// ---------- マスタ ----------
+function renderMasters() {
+  $('divBody').innerHTML = `<table><thead><tr><th>名称</th><th>表示順</th><th>有効</th><th></th></tr></thead><tbody>` +
+    state.divisions.map(d => `
+      <tr>
+        <td><input value="${esc(d.name)}" id="dn-${d.id}"></td>
+        <td><input type="number" value="${d.display_order}" id="do-${d.id}" style="width:70px"></td>
+        <td><input type="checkbox" ${d.is_active ? 'checked' : ''} id="da-${d.id}" style="width:auto"></td>
+        <td style="white-space:nowrap"><button class="btn sm gray" data-savediv="${d.id}">保存</button>
+          <button class="btn sm red" data-deldiv="${d.id}">削除</button></td>
+      </tr>`).join('') + '</tbody></table>';
+  $('divBody').querySelectorAll('[data-savediv]').forEach(b => b.addEventListener('click', () => saveDivision(b.dataset.savediv)));
+  $('divBody').querySelectorAll('[data-deldiv]').forEach(b => b.addEventListener('click', () => deleteDivision(b.dataset.deldiv)));
+
+  $('ruleBody').innerHTML = `<table><thead><tr><th>区分</th><th>指標</th><th>内容</th><th>単位</th><th>pt</th><th>有効</th><th></th></tr></thead><tbody>` +
+    state.rules.slice().sort((a, b) => a.display_order - b.display_order).map(r => `
+      <tr>
+        <td>${r.kind === 'add' ? '<span class="add">加点</span>' : '<span class="deduct">減点</span>'}</td>
+        <td><input value="${esc(r.category)}" id="rc-${r.id}" style="min-width:110px"></td>
+        <td><input value="${esc(r.label)}" id="rl-${r.id}" style="min-width:150px"></td>
+        <td><input value="${esc(r.unit || '')}" id="ru-${r.id}" style="width:64px"></td>
+        <td>${r.is_variable ? '<span class="muted">可変</span>' : `<input type="number" value="${r.points}" id="rp-${r.id}" style="width:80px">`}</td>
+        <td><input type="checkbox" ${r.is_active ? 'checked' : ''} id="ra-${r.id}" style="width:auto"></td>
+        <td style="white-space:nowrap"><button class="btn sm gray" data-saverule="${r.id}">保存</button>
+          <button class="btn sm red" data-delrule="${r.id}">削除</button></td>
+      </tr>`).join('') + '</tbody></table>';
+  $('ruleBody').querySelectorAll('[data-saverule]').forEach(b => b.addEventListener('click', () => saveRule(b.dataset.saverule)));
+  $('ruleBody').querySelectorAll('[data-delrule]').forEach(b => b.addEventListener('click', () => deleteRule(b.dataset.delrule)));
+}
+async function saveDivision(id) {
+  const name = $(`dn-${id}`).value.trim();
+  if (!name) { gmsg(false, 'Division名は必須です'); return; }
+  const { error } = await sb.from('l1_divisions').update({
+    name, display_order: parseInt($(`do-${id}`).value, 10) || 0, is_active: $(`da-${id}`).checked,
+  }).eq('id', id);
+  if (error) { gmsg(false, '保存に失敗: ' + error.message); return; }
+  gmsg(true, 'Divisionを保存しました');
+  await reloadAll();
+}
+function isFkError(e) { return e && (e.code === '23503' || /foreign key|violates|referenced|依存|参照/i.test(e.message || '')); }
+async function deleteDivision(id) {
+  const d = state.divisions.find(x => x.id === id);
+  if (!confirm(`Division「${d?.name ?? ''}」を削除しますか？\n（過去のポイント記録がある場合は削除できません。その場合は「有効」を外して保存すると順位・申請から除外できます）`)) return;
+  const { error } = await sb.from('l1_divisions').delete().eq('id', id);
+  if (error) {
+    gmsg(false, isFkError(error)
+      ? 'このDivisionは過去のポイント記録に使用されているため削除できません。「有効」のチェックを外して保存すると、順位・申請から除外できます。'
+      : '削除に失敗: ' + error.message);
+    return;
+  }
+  gmsg(true, 'Divisionを削除しました');
+  await reloadAll();
+}
+async function addDivision() {
+  const name = $('newDivName').value.trim();
+  if (!name) { gmsg(false, 'Division名を入力してください'); return; }
+  const maxOrder = Math.max(0, ...state.divisions.map(d => d.display_order));
+  const { error } = await sb.from('l1_divisions').insert({ name, display_order: maxOrder + 1 });
+  if (error) { gmsg(false, '追加に失敗: ' + error.message); return; }
+  $('newDivName').value = '';
+  gmsg(true, 'Divisionを追加しました');
+  await reloadAll();
+}
+async function addRule() {
+  const kind = $('nrKind').value;
+  const category = $('nrCategory').value.trim();
+  const label = $('nrLabel').value.trim();
+  const unit = $('nrUnit').value.trim() || '回';
+  const isVar = $('nrVariable').checked;
+  if (!category) { flash($('nrMsg'), false, '対象指標を入力してください'); return; }
+  if (!label) { flash($('nrMsg'), false, '内容を入力してください'); return; }
+  const payload = { kind, category, label, unit, is_variable: isVar };
+  if (isVar) {
+    payload.points = null;
+  } else {
+    const pts = parseInt($('nrPoints').value, 10);
+    if (!Number.isInteger(pts) || pts === 0) { flash($('nrMsg'), false, '固定ポイントは0以外の整数で入力してください'); return; }
+    if (kind === 'add' && pts < 0) { flash($('nrMsg'), false, '加点項目のポイントは正の値で入力してください'); return; }
+    if (kind === 'deduct' && pts > 0) { flash($('nrMsg'), false, '減点項目のポイントは負の値で入力してください'); return; }
+    payload.points = pts;
+  }
+  payload.display_order = Math.max(0, ...state.rules.map(r => r.display_order || 0)) + 1;
+  const { error } = await sb.from('l1_rules').insert(payload);
+  if (error) {
+    const dup = /duplicate|unique/i.test(error.message);
+    flash($('nrMsg'), false, dup ? '同じ内容の判定基準が既に存在します' : '追加に失敗: ' + error.message);
+    return;
+  }
+  flash($('nrMsg'), true, '判定基準を追加しました');
+  $('nrCategory').value = ''; $('nrLabel').value = ''; $('nrPoints').value = ''; $('nrVariable').checked = false;
+  $('nrPointsWrap').classList.remove('hidden');
+  await reloadAll();
+}
+async function saveRule(id) {
+  const r = rOf(id);
+  const category = $(`rc-${id}`).value.trim();
+  const label = $(`rl-${id}`).value.trim();
+  const unit = $(`ru-${id}`).value.trim() || '回';
+  if (!category) { gmsg(false, '指標は必須です'); return; }
+  if (!label) { gmsg(false, '内容は必須です'); return; }
+  const upd = { category, label, unit, is_active: $(`ra-${id}`).checked };
+  if (!r.is_variable) {
+    const pts = parseInt($(`rp-${id}`).value, 10);
+    if (!Number.isInteger(pts) || pts === 0) { gmsg(false, 'ポイントは0以外の整数で入力してください'); return; }
+    if (r.kind === 'add' && pts < 0) { gmsg(false, '加点項目のポイントは正の値です'); return; }
+    if (r.kind === 'deduct' && pts > 0) { gmsg(false, '減点項目のポイントは負の値です'); return; }
+    upd.points = pts;
+  }
+  const { error } = await sb.from('l1_rules').update(upd).eq('id', id);
+  if (error) {
+    gmsg(false, /duplicate|unique/i.test(error.message) ? '同じ内容の判定基準が既に存在します' : '保存に失敗: ' + error.message);
+    return;
+  }
+  gmsg(true, '判定基準を保存しました');
+  await reloadAll();
+}
+async function deleteRule(id) {
+  const r = rOf(id);
+  if (!confirm(`判定基準「${r?.category ?? ''}｜${r?.label ?? ''}」を削除しますか？\n（過去のポイント記録がある場合は削除できません。その場合は「有効」を外して保存すると申請・表示から除外できます）`)) return;
+  const { error } = await sb.from('l1_rules').delete().eq('id', id);
+  if (error) {
+    gmsg(false, isFkError(error)
+      ? 'この判定基準は過去のポイント記録に使用されているため削除できません。「有効」のチェックを外して保存すると、今後の申請・表示から除外できます。'
+      : '削除に失敗: ' + error.message);
+    return;
+  }
+  gmsg(true, '判定基準を削除しました');
+  await reloadAll();
+}
+
+// ---------- 個人成績（登録メンバーをランキング表示・専用権限者のみタブ表示） ----------
+function renderIndividual() {
+  // 読み込み失敗は沈黙させない（原因の切り分けができるよう理由を出す）
+  if (state.individualError) {
+    $('indBody').innerHTML = `<div style="color:#c0392b;font-weight:700">個人成績を読み込めませんでした</div>`
+      + `<div class="muted" style="margin-top:4px">${esc(state.individualError)}</div>`
+      + (/does not exist|schema cache|could not find/i.test(state.individualError)
+          ? `<div class="muted" style="margin-top:4px">l1_28（l1_individual_totals）が未適用の可能性があります。</div>` : '');
+    return;
+  }
+  if (state.individual === null) {
+    $('indBody').innerHTML = '<div class="muted">読み込み中…</div>';
+    return;
+  }
+
+  // サーバー側（l1_individual_totals）で集計済み。void除外・今期(cycle)のみ対象。
+  const rows = (state.individual || []).map(r => ({
+    name: String(r.earner_name || '').trim(),
+    division_id: r.division_id || null,
+    pts: Number(r.total_points || 0),
+    cnt: Number(r.event_count || 0),
+  })).filter(r => r.name);
+
+  // 対象期を表示（どの期の成績を見ているかを明示する）
+  const activeSeason = (state.seasons || []).find(x => x.is_active);
+  const cycleLabel = activeSeason && activeSeason.cycle ? String(activeSeason.cycle) : '';
+  const scope = cycleLabel
+    ? `<div class="muted" style="margin-bottom:6px">対象: <b>${esc(cycleLabel)}</b>（${esc(activeSeason.name ?? '')}）</div>`
+    : `<div class="muted" style="margin-bottom:6px;color:#c0392b">開催中のシーズンがありません。マスタタブでシーズンを有効化してください。</div>`;
+
+  if (rows.length === 0) {
+    $('indBody').innerHTML = scope
+      + `<div class="muted">${cycleLabel ? esc(cycleLabel) + 'の' : ''}ポイント記録はまだありません。`
+      + '前期までの記録は集計対象外です。</div>';
+    return;
+  }
+  // 競争順位（同ptは同順位）
+  const ranked = [];
+  rows.forEach((r, i) => { const rank = (i > 0 && rows[i - 1].pts === r.pts) ? ranked[i - 1].rank : i + 1; ranked.push({ ...r, rank }); });
+
+  $('indBody').innerHTML = scope + `<table><thead><tr><th>順位</th><th>獲得者</th><th>所属</th><th style="text-align:right">合計pt</th><th style="text-align:right">件数</th></tr></thead><tbody>` +
+    ranked.map(r => `<tr>
+      <td style="text-align:center;font-weight:900" class="${r.rank === 1 ? 'rank1' : ''}">${r.rank}</td>
+      <td>${esc(r.name)}</td>
+      <td class="muted">${esc(dName(r.division_id) === '(不明)' ? '' : dName(r.division_id))}</td>
+      <td style="text-align:right;font-weight:900">${Number(r.pts).toLocaleString()} L</td>
+      <td style="text-align:right" class="muted">${r.cnt}</td>
+    </tr>`).join('') + '</tbody></table>';
+}
+
+function memberNameOptions(selectedName) {
+  const names = [...new Set((state.members || []).filter(m => m.is_active !== false && m.open_id).map(m => m.name))].sort((a, b) => String(a).localeCompare(String(b), 'ja'));
+  return '<option value="">（未設定）</option>' +
+    names.map(n => `<option value="${esc(n)}" ${n === selectedName ? 'selected' : ''}>${esc(n)}</option>`).join('');
+}
+function renderAdmins() {
+  populateAddAdminNames();
+  $('admBody').innerHTML = `<table><thead><tr><th>氏名（Lark通知先）</th><th>所属Division</th><th style="text-align:center">個人成績の閲覧</th><th></th></tr></thead><tbody>` +
+    state.admins.map(a => `
+      <tr>
+        <td>
+          <select id="al-${a.user_id}" data-sel-value="${esc(a.lark_name ?? '')}" style="min-width:150px">${memberNameOptions(a.lark_name)}</select>
+          ${a.open_id ? '<span class="badge on" style="margin-left:6px">紐付け済</span>' : '<span class="badge" style="margin-left:6px">未紐付け</span>'}
+        </td>
+        <td><select id="adv-${a.user_id}" style="min-width:120px">${divOptions(a.division_id)}</select></td>
+        <td style="text-align:center">${a.can_view_individual ? '<span class="badge on">許可</span>' : '<span class="badge">なし</span>'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn sm gray" data-savelark="${a.user_id}">保存</button>
+          ${a.user_id === state.user?.id ? '<span class="muted">自分</span>' : `<button class="btn sm red" data-deladm="${a.user_id}">削除</button>`}
+        </td>
+      </tr>`).join('') + '</tbody></table>';
+  // Divisionで絞り込めない箇所のため、行ごとにリアルタイム検索を付与
+  const larkNames = namesForDivision(state.members, '', { requireOpenId: true });
+  (state.admins || []).forEach(a => {
+    attachSearchSelect($(`al-${a.user_id}`), () => larkNames,
+      { emptyLabel: '（未設定）', noneLabel: '（未設定）', placeholder: '氏名で検索' });
+  });
+  $('admBody').querySelectorAll('[data-deladm]').forEach(b => b.addEventListener('click', () => delAdmin(b.dataset.deladm)));
+  $('admBody').querySelectorAll('[data-savelark]').forEach(b => b.addEventListener('click', () => saveAdminLark(b.dataset.savelark)));
+}
+async function saveAdminLark(user_id) {
+  const name = $(`al-${user_id}`).value;
+  const m = (state.members || []).find(x => x.name === name && x.open_id);
+  const open_id = m ? m.open_id : null;
+  const lark_name = name || null;
+  const division_id = $(`adv-${user_id}`).value || null;
+  const { error } = await sb.from('l1_admins').update({ open_id, lark_name, division_id }).eq('user_id', user_id);
+  if (error) { gmsg(false, '保存に失敗: ' + error.message); return; }
+  gmsg(true, '管理者情報を保存しました');
+  await reloadAll();
+}
+function populateAddAdminNames() {
+  const nrm = s => String(s || '').replace(/[\s　]/g, '');
+  const adminNames = new Set((state.admins || []).map(a => nrm(a.lark_name)));
+  const names = [...new Set((state.members || [])
+    .filter(m => m.is_active !== false && m.name && !adminNames.has(nrm(m.name)))
+    .map(m => m.name))].sort((a, b) => String(a).localeCompare(String(b), 'ja'));
+  const sel = $('newAdmName'); if (!sel) return;
+  // Divisionで絞り込めない箇所のためリアルタイム検索を付与
+  attachSearchSelect(sel, () => names, { noneLabel: '追加できるメンバーがいません' });
+}
+async function addAdmin() {
+  const name = $('newAdmName').value;
+  if (!name) { gmsg(false, '氏名を選択してください'); return; }
+  const { error } = await sb.rpc('l1_add_admin_by_name', { p_name: name });
+  if (error) { gmsg(false, '追加に失敗: ' + error.message); return; }
+  gmsg(true, `${name} を管理者に追加しました`);
+  await reloadAll();
+}
+async function delAdmin(user_id) {
+  if (!confirm('この管理者を削除しますか？')) return;
+  const { error } = await sb.from('l1_admins').delete().eq('user_id', user_id);
+  if (error) { gmsg(false, '削除に失敗: ' + error.message); return; }
+  gmsg(true, '管理者を削除しました');
+  await reloadAll();
+}
+
+// ---------- 申請者（申請権限＝l1_members.can_apply、氏名ベース） ----------
+function renderApplicants() {
+  populateAddApplicantNames();
+  const list = (state.members || []).filter(m => m.can_apply)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ja'));
+  $('aplBody').innerHTML = `<table><thead><tr><th>氏名</th><th>所属Division</th><th></th></tr></thead><tbody>` +
+    (list.length ? list.map(m => `
+      <tr>
+        <td>${esc(m.name)}${m.is_active === false ? '<span class="badge" style="margin-left:6px">退会</span>' : ''}</td>
+        <td class="muted">${esc(dName(m.division_id) === '(不明)' ? '' : dName(m.division_id))}</td>
+        <td><button class="btn sm red" data-delapl="${m.id}">権限削除</button></td>
+      </tr>`).join('') : '<tr><td colspan="3" class="muted">申請権限を持つメンバーはいません。</td></tr>') + '</tbody></table>';
+  $('aplBody').querySelectorAll('[data-delapl]').forEach(b => b.addEventListener('click', () => delApplicant(b.dataset.delapl)));
+}
+function populateAddApplicantNames() {
+  const names = (state.members || [])
+    .filter(m => m.is_active !== false && m.name && !m.can_apply)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name), 'ja'));
+  const sel = $('newAplName'); if (!sel) return;
+  // Divisionで絞り込めない箇所のためリアルタイム検索を付与
+  attachSearchSelect(sel, () => names.map(m => ({ value: m.id, label: m.name })),
+    { noneLabel: '付与できるメンバーがいません' });
+}
+async function addApplicant() {
+  const id = $('newAplName').value;
+  if (!id) { gmsg(false, '氏名を選択してください'); return; }
+  const m = (state.members || []).find(x => x.id === id);
+  const { error } = await sb.from('l1_members').update({ can_apply: true }).eq('id', id);
+  if (error) { gmsg(false, '付与に失敗: ' + error.message); return; }
+  gmsg(true, `${m ? m.name : ''} に申請権限を付与しました`);
+  await reloadAll();
+}
+async function delApplicant(id) {
+  const m = (state.members || []).find(x => x.id === id);
+  if (!confirm(`${m ? m.name : 'この人'} の申請権限を削除しますか？`)) return;
+  const { error } = await sb.from('l1_members').update({ can_apply: false }).eq('id', id);
+  if (error) { gmsg(false, '削除に失敗: ' + error.message); return; }
+  gmsg(true, '申請権限を削除しました');
+  await reloadAll();
+}
+
+// ---------- メンバー名簿 ----------
+function divOptions(selected) {
+  return '<option value="">（未設定）</option>' +
+    state.divisions.map(d => `<option value="${d.id}" ${d.id === selected ? 'selected' : ''}>${esc(d.name)}</option>`).join('');
+}
+function renderMembers() {
+  const list = state.members || [];
+  $('newMemDiv').innerHTML = divOptions('');
+  $('memBody').innerHTML = `<table><thead><tr><th>氏名</th><th>所属Division</th><th>取得元</th><th>状態</th><th></th></tr></thead><tbody>` +
+    (list.length ? list.map(m => `
+      <tr>
+        <td><input value="${esc(m.name)}" id="mn-${m.id}" style="min-width:110px"></td>
+        <td><select id="md-${m.id}" style="min-width:120px">${divOptions(m.division_id)}</select></td>
+        <td>${m.open_id ? '<span class="badge on">Lark</span>' : '<span class="badge">手動</span>'}</td>
+        <td><label style="font-weight:600"><input type="checkbox" id="ma-${m.id}" ${m.is_active ? 'checked' : ''} style="width:auto"> 有効</label></td>
+        <td style="white-space:nowrap">
+          <button class="btn sm gray" data-savemem="${m.id}">保存</button>
+          ${m.open_id ? '' : `<button class="btn sm" data-linkmem="${esc(m.name)}">Lark紐付け</button>`}
+          <button class="btn sm red" data-delmem="${m.id}">削除</button>
+        </td>
+      </tr>`).join('') : '<tr><td colspan="5" class="muted">まだメンバーが登録されていません。下のフォームで追加してください（追加時に氏名でLarkを検索して自動紐付けします）。</td></tr>') + '</tbody></table>';
+  $('memBody').querySelectorAll('[data-savemem]').forEach(b => b.addEventListener('click', () => saveMember(b.dataset.savemem)));
+  $('memBody').querySelectorAll('[data-delmem]').forEach(b => b.addEventListener('click', () => delMember(b.dataset.delmem)));
+  $('memBody').querySelectorAll('[data-linkmem]').forEach(b => b.addEventListener('click', () => linkMemberToLark(b.dataset.linkmem, b)));
+}
+async function addMember() {
+  const name = $('newMemName').value.trim();
+  const division_id = $('newMemDiv').value || null;
+  if (!name) { gmsg(false, '氏名を入力してください'); return; }
+  const { error } = await sb.from('l1_members').insert({ name, division_id, is_active: true });
+  if (error) { gmsg(false, '追加に失敗: ' + error.message); return; }
+  $('newMemName').value = '';
+  gmsg(true, `メンバーを追加しました。Larkから「${name}」を検索しています…`);
+  await reloadAll();
+  await linkMemberToLark(name);   // open_id と ログインアカウントを補完
+}
+
+// 氏名を指定して1名だけLarkから紐付ける（open_id付与＋ログインアカウント発行）
+async function linkMemberToLark(name, btn) {
+  if (!name) return;
+  const label = btn ? btn.textContent : null;
+  if (btn) { btn.disabled = true; btn.textContent = '照会中…'; }
+  try {
+    const { data, error } = await sb.functions.invoke('l1-lark-link-member', { body: { name } });
+    if (error) {
+      // HTTPステータスすら返っていない場合は未デプロイ or CORSプリフライト失敗
+      const hint = /failed to send a request/i.test(error.message || '')
+        ? '（Edge Function l1-lark-link-member が未デプロイか、--no-verify-jwt を付けずにデプロイされている可能性があります）'
+        : '';
+      gmsg(false, `Lark紐付けに失敗: ${error.message}${hint}`);
+      return;
     }
-    document.getElementById("eClose").onclick = () => editModal.classList.remove("show");
-    editModal.addEventListener("click", e => { if (e.target === editModal) editModal.classList.remove("show"); });
-    eUpdate.onclick = () => {
-      if (!document.getElementById("eTtl").value.trim()) { showToast("案件名を入力してください"); document.getElementById("eTtl").focus(); return; }
-      if (!eOv.value.trim()) { showToast("案件概要を入力してください"); eOv.focus(); return; }
-      confirmAction = updateCase;
-      confirmEl.classList.add("show");   // 単価確認（編集モーダルの上に表示）
-    };
-    async function updateCase() {
-      confirmOk.disabled = true;
-      const overview = eOv.value.trim();
-      const registrant = document.getElementById("eReg").value.trim();
-      const days = Math.max(1, parseInt(eDays.value, 10) || 7);
-      const { error } = await sb.from("cases")
-        .update({ overview, title: document.getElementById("eTtl").value.trim(), registrant, period_days: days })
-        .eq("id", editingId);
-      confirmOk.disabled = false;
-      if (error) { showToast("更新に失敗しました：" + error.message); return; }
-      confirmEl.classList.remove("show");
-      editModal.classList.remove("show");
-      showToast("案件を更新しました");
-      loadCases();
+    if (!data?.ok) {
+      gmsg(false, `Lark紐付けできませんでした: ${data?.error ?? '不明なエラー'}`);
+      return;
     }
+    const pw = data.initial_password ? `／初期パスワード ${data.initial_password}（初回ログインで再設定）` : '';
+    gmsg(true, `「${data.name}」をLarkと紐付けました（ログイン用: ${data.login_email}${pw}）`);
+    await reloadAll();
+  } catch (e) {
+    gmsg(false, 'Lark紐付けに失敗: ' + String(e));
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
+}
+async function saveMember(id) {
+  const name = $(`mn-${id}`).value.trim();
+  const division_id = $(`md-${id}`).value || null;
+  const is_active = $(`ma-${id}`).checked;
+  if (!name) { gmsg(false, '氏名は必須です'); return; }
+  const { error } = await sb.from('l1_members').update({ name, division_id, is_active }).eq('id', id);
+  if (error) { gmsg(false, '保存に失敗: ' + error.message); return; }
+  gmsg(true, 'メンバーを保存しました');
+  await reloadAll();
+}
+async function delMember(id) {
+  const m = (state.members || []).find(x => x.id === id);
+  if (!confirm(`メンバー「${m?.name ?? ''}」を削除しますか？`)) return;
+  const { error } = await sb.from('l1_members').delete().eq('id', id);
+  if (error) { gmsg(false, '削除に失敗: ' + error.message); return; }
+  gmsg(true, 'メンバーを削除しました');
+  await reloadAll();
+}
 
-    // ===== 削除 =====
-    function openDel(id) { delId = id; delConfirm.classList.add("show"); }
-    document.getElementById("delBack").onclick = () => delConfirm.classList.remove("show");
-    delConfirm.addEventListener("click", e => { if (e.target === delConfirm) delConfirm.classList.remove("show"); });
-    delOk.onclick = async () => {
-      if (!delId) return;
-      delOk.disabled = true;
-      // 応募情報を先に削除してから案件を削除（外部キー制約に依存しない）
-      await sb.from("applications").delete().eq("case_id", delId);
-      const { error } = await sb.from("cases").delete().eq("id", delId);
-      delOk.disabled = false;
-      if (error) { showToast("削除に失敗しました：" + error.message); return; }
-      delConfirm.classList.remove("show"); delId = null;
-      showToast("案件を削除しました");
-      loadCases();
-    };
+// ---------- タブ・初期化 ----------
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  for (const sec of ['tabReq', 'tabDirect', 'tabEvents', 'tabIndividual', 'tabMaster', 'tabAdmins', 'tabApplicants', 'tabMembers']) {
+    $(sec).classList.toggle('hidden', sec !== b.dataset.tab);
+  }
+}));
+$('lgBtn').addEventListener('click', login);
+$('lgPass').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+initEye('lgEye','lgPass');
+$('npwBtn').addEventListener('click', submitNewPassword);
+initEye('npw1Eye','npw1');
+initEye('npw2Eye','npw2');
+$('logoutBtn').addEventListener('click', logout);
+$('dcDivision').addEventListener('change', populateDirectEarner);   // 選択Divisionで獲得者を絞り込む
+$('dcRule').addEventListener('change', () => $('dcPointsWrap').classList.toggle('hidden', !rOf($('dcRule').value)?.is_variable));
+$('dcSubmit').addEventListener('click', directSubmit);
+$('newDivBtn').addEventListener('click', addDivision);
+$('nrBtn').addEventListener('click', addRule);
+$('nrVariable').addEventListener('change', () => $('nrPointsWrap').classList.toggle('hidden', $('nrVariable').checked));
+$('newAdmBtn').addEventListener('click', addAdmin);
+$('newAplBtn').addEventListener('click', addApplicant);
+$('newMemBtn').addEventListener('click', addMember);
 
-    // 表示側の変化（応募・削除など）も一覧に反映
-    sb.channel("admin-cases").on("postgres_changes", { event: "*", schema: "public", table: "cases" }, () => loadCases()).subscribe();
-    sb.channel("admin-apps").on("postgres_changes", { event: "*", schema: "public", table: "applications" }, () => loadCases()).subscribe();
-
-    loadCases();
-  </script>
+populateAdminNames();   // ログイン用の氏名プルダウンを用意
+afterAuth();            // セッションが残っていれば自動ログイン
+</script>
 </body>
-
 </html>
